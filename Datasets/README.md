@@ -11,3 +11,6 @@
 3. Collect sample activity data from a diverse set of office buildings for testing and      validation.
 4. Preprocess and clean the collected datasets, ensuring consistency and compatibility.
 5. Document all data sources, preprocessing steps, and assumptions made.
+
+Datasets chosen:
+1. 

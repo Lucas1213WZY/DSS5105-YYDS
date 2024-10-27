@@ -1,1 +1,1 @@
-This folder contains Jupyter Notebook files used for data preprocessing, data analysis, experimentation, and code demonstrations.
+This folder contains scripts used for data preprocessing, data analysis, experimentation, and code demonstrations.

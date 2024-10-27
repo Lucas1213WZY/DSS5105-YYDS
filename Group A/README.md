@@ -1,1 +1,1 @@
-This is group a development folder.
+This is group A development folder.

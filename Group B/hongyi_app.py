@@ -45,7 +45,7 @@ app.layout = html.Div([
 # File upload section layout with logo image
 file_upload_layout = html.Div([
     html.Img(
-        src='/assets/teamlogo.png',
+        src='./teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',
@@ -127,10 +127,9 @@ def update_output(contents, filename, last_modified):
 
 
 # Manual input section layout with logo image
-# Manual input section layout with logo image and added container for padding
 manual_input_layout = dbc.Container([
     html.Img(
-        src='/assets/teamlogo.png',
+        src='./teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',

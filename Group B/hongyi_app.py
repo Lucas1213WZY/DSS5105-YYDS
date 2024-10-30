@@ -363,6 +363,7 @@ page_3_layout = dbc.Container([
     ])
 ])
 
+
 # Define layout for Page 4 - Report Generation and Chatbot
 page_4_layout = dbc.Container([
     dbc.NavbarSimple(
@@ -378,6 +379,17 @@ page_4_layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.H5("Generate Report"),
+            # Dropdown for selecting report format
+            dcc.Dropdown(
+                id='report-format',
+                options=[
+                    {'label': 'HTML', 'value': 'html'},
+                    {'label': 'PDF', 'value': 'pdf'},
+                    {'label': 'Word (DOCX)', 'value': 'docx'}
+                ],
+                placeholder="Select Report Format",
+                style={'width': '100%', 'margin-bottom': '20px'}
+            ),
             dbc.Button("Download Report", id="report-button", color="secondary"),
             dcc.Download(id="download-report")
         ], width=4),
@@ -391,47 +403,21 @@ page_4_layout = dbc.Container([
     ])
 ])
 
-# Define layout for Page 5 - Geospatial Analysis
-page_5_layout = dbc.Container([
-    dbc.NavbarSimple(
-        brand="Geospatial Analysis of Buildings",
-        brand_href="/page-5",
-        color="primary",
-        dark=True,
-        className="mb-5"
-    ),
-    dbc.Row([
-        dbc.Col(html.H1("Geospatial Analysis of Buildings", className="text-center"), className="mb-5 mt-5")
-    ]),
-    dbc.Row([
-        dbc.Col([
-            html.H5("Building Locations on Map"),
-            dl.Map(center=[1.3521, 103.8198], zoom=12, children=[
-                dl.TileLayer(),
-                dl.LayerGroup(id="layer-group")
-            ], style={'width': '100%', 'height': '500px', 'margin': "auto", "display": "block"})
-        ])
-    ], className="mt-5"),
-    dbc.Row([
-        dbc.Col([
-            dbc.Button("Back to Data Upload", id="back-upload-button", color="primary", href='/page-1')
-        ], width=4),
-    ])
-])
 
 
 # Combine callback to handle both navigation and method switching
-@app.callback(
-    Output('page-content', 'children'),
-    [Input('url', 'pathname')]
-)
+@app.callback(Output('page-content', 'children'),
+              Input('url', 'pathname'))
 def display_page(pathname):
     if pathname == '/page-2':
         return page_2_layout
     elif pathname == '/page-3':
         return page_3_layout
+    elif pathname == '/page-4':
+        return page_4_layout
+    elif pathname == '/page-5':
+        return page_5_layout
     else:
-        # Default to file upload layout (with logo)
         return html.Div([
             dcc.RadioItems(
                 id='input-method',
@@ -470,6 +456,7 @@ def display_page(pathname):
         ])
 
 
+
 # Callback to switch between file upload and manual input
 @app.callback(
     Output('input-section', 'children'),
@@ -480,6 +467,51 @@ def display_input_method(selected_method):
         return file_upload_layout
     elif selected_method == 'manual':
         return manual_input_layout
+
+# generate report
+@app.callback(
+    Output('download-report', 'data'),
+    [Input('report-button', 'n_clicks')],
+    [State('report-format', 'value')]
+)
+def generate_report(n_clicks, report_format):
+    if n_clicks:
+        try:
+            # Generate a blank HTML report
+            if report_format == 'html':
+                report_html = """
+                <html>
+                    <head><title>Blank Report</title></head>
+                    <body><h1>Blank Report</h1><p>This is a placeholder for the report.</p></body>
+                </html>
+                """
+                with open('report.html', 'w') as f:
+                    f.write(report_html)
+                return dcc.send_file('report.html')
+
+            # Generate a blank PDF report
+            elif report_format == 'pdf':
+                report_html = """
+                <html>
+                    <head><title>Blank PDF Report</title></head>
+                    <body><h1>Blank PDF Report</h1><p>This is a placeholder for the PDF report.</p></body>
+                </html>
+                """
+                pdfkit.from_string(report_html, 'report.pdf')
+                return dcc.send_file('report.pdf')
+
+            # Generate a blank Word report
+            elif report_format == 'docx':
+                doc = docx.Document()
+                doc.add_heading('Blank Word Report', 0)
+                doc.add_paragraph("This is a placeholder for the Word report.")
+                doc.save('report.docx')
+                return dcc.send_file('report.docx')
+
+        except Exception as e:
+            print(f"Error during report generation: {e}")
+            return None
+
 
 
 # Run the app

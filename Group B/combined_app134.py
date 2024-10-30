@@ -313,7 +313,7 @@ page_2_layout = dbc.Container([
 
 
 
-df = pd.read_csv('./merged_df.csv', encoding="utf-8", encoding_errors='ignore')
+df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
 df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
 
 

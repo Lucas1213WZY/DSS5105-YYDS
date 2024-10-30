@@ -50,8 +50,8 @@ file_upload_layout = html.Div([
             'position': 'absolute',
             'top': '10px',
             'right': '10px',
-            'width': '500px',  # 控制图片宽度
-            'height': 'auto'  # 保持图片比例
+            'width': '500px', 
+            'height': 'auto'
         }
     ),
     dbc.Card([
@@ -84,45 +84,37 @@ file_upload_layout = html.Div([
 
 
 @app.callback(
-    Output('file-upload-status', 'children'),  # 显示文件上传状态的输出组件
-    Input('upload-data', 'contents'),  # 输入文件内容
-    State('upload-data', 'filename'),  # 输入文件名
-    State('upload-data', 'last_modified')  # 输入文件最后修改时间
+    Output('file-upload-status', 'children'),  
+    Input('upload-data', 'contents'),  
+    State('upload-data', 'filename'),  
+    State('upload-data', 'last_modified')  
 )
 def update_output(contents, filename, last_modified):
     if contents is not None:
         content_type, content_string = contents.split(',')
         
-        # 解码文件内容
         decoded = base64.b64decode(content_string)
         
         try:
-            # 检查文件类型并读取文件内容
             if filename.endswith('.csv'):
-                # 读取CSV文件
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
             elif filename.endswith('.xlsx'):
-                # 读取Excel文件
                 df = pd.read_excel(io.BytesIO(decoded))
             else:
-                # 如果文件类型不支持，返回错误信息
                 return html.Div(['File format not supported，please upload csv or xlsx file'])
             
-            # 如果文件读取成功，显示文件信息
             return html.Div([
                 html.H5(f"File {filename} uploaded！"),
                 dash_table.DataTable(
-                    data=df.head().to_dict('records'),  # 显示数据表的前几行
+                    data=df.head().to_dict('records'),
                     columns=[{'name': i, 'id': i} for i in df.columns],
                     style_table={'overflowX': 'auto'}
                 )
             ])
         except Exception as e:
-            # 如果发生错误，打印错误信息并返回错误信息
             print(f"Error reading file: {e}")
             return html.Div(['File read failed，please check for the file format.'])
     
-    # 如果文件尚未上传，显示提示
     return html.Div(['File not uploaded.'])
 
 
@@ -134,8 +126,8 @@ manual_input_layout = dbc.Container([
             'position': 'absolute',
             'top': '10px',
             'right': '10px',
-            'width': '100px',  # 控制图片宽度
-            'height': 'auto'   # 保持图片比例
+            'width': '500px', 
+            'height': 'auto'
         }
     ),
     dbc.Card([

@@ -1,6 +1,7 @@
 # DSS5105-YYDS
 
 **Dashboard**
+
 **Page 3:**
 
 This Dash app visualizes data from a building dataset (merged_df.csv) using interactive Plotly graphs. It provides insights into building-related data over time, including trend lines, histograms, and pie charts.

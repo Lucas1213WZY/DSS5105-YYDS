@@ -9,6 +9,7 @@ import folium
 from dash_extensions import BeforeAfter
 import dash_leaflet as dl
 import base64
+import plotly.graph_objects as go
 
 
 # Initialize the app
@@ -45,12 +46,12 @@ app.layout = html.Div([
 # File upload section layout with logo image
 file_upload_layout = html.Div([
     html.Img(
-        src='./teamlogo.png',
+        src='./assets/teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',
             'right': '10px',
-            'width': '500px', 
+            'width': '500px',  
             'height': 'auto'
         }
     ),
@@ -92,10 +93,11 @@ file_upload_layout = html.Div([
 def update_output(contents, filename, last_modified):
     if contents is not None:
         content_type, content_string = contents.split(',')
-        
+    
         decoded = base64.b64decode(content_string)
         
         try:
+            
             if filename.endswith('.csv'):
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
             elif filename.endswith('.xlsx'):
@@ -106,7 +108,7 @@ def update_output(contents, filename, last_modified):
             return html.Div([
                 html.H5(f"File {filename} uploaded！"),
                 dash_table.DataTable(
-                    data=df.head().to_dict('records'),
+                    data=df.head().to_dict('records'),  
                     columns=[{'name': i, 'id': i} for i in df.columns],
                     style_table={'overflowX': 'auto'}
                 )
@@ -126,8 +128,8 @@ manual_input_layout = dbc.Container([
             'position': 'absolute',
             'top': '10px',
             'right': '10px',
-            'width': '500px', 
-            'height': 'auto'
+            'width': '100px',  
+            'height': 'auto'   
         }
     ),
     dbc.Card([
@@ -252,17 +254,67 @@ manual_input_layout = dbc.Container([
             ], className="mb-4"),
             dbc.Row([
                 dbc.Col([
+                    html.H5("Subway/MRT Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='subway-commute-input', type='number', placeholder="Enter distance (km)",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+                dbc.Col([
+                    html.H5("Bus Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='bus-commute-input', type='number', placeholder="Enter distance (km)",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Taxi/Private Car Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='taxi-commute-input', type='number', placeholder="Enter distance (km)",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Business Travel (Flight, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='business-travel-flight-input', type='number', placeholder="Enter amount in $SDG",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+                dbc.Col([
+                    html.H5("Business Travel (Hotel, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='business-travel-hotel-input', type='number', placeholder="Enter amount in $SDG",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Business Procurement (Air Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='business-procurement-air-freight-input', type='number', placeholder="Enter weight/volume",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+                dbc.Col([
+                    html.H5("Business Procurement (Diesel Truck Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='business-procurement-diesel-truck-input', type='number', placeholder="Enter weight/volume",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
+                    html.H5("Business Procurement (Electric Truck Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    dcc.Input(id='business-procurement-electric-truck-input', type='number', placeholder="Enter weight/volume",
+                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                ], width=6),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
                     dbc.Button("Proceed to Data Quality Check", id="next-button", color="info", className="mr-2", 
                                style={'fontSize': '16px', 'padding': '10px 20px', 'width': '100%'}, href='page-2')
                 ], width=3),
-            ], justify="center")  # Center button
+            ], justify="center")  
         ])
     ], className="mb-5", style={
         'backgroundColor': '#ffffff', 
         'boxShadow': '0 4px 12px rgba(0, 0, 0, 0.1)',
-        'padding': '20px'  # 内边距，避免紧贴边缘
+        'padding': '20px'  
     })
-], fluid=True)  # 将Container设为流体布局，适配不同屏幕
+], fluid=True) 
 
 
 
@@ -304,6 +356,8 @@ page_2_layout = dbc.Container([
 
 
 
+df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
+df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
 
 
 # Define layout for Page 3 - Model Running and Visualization
@@ -318,34 +372,25 @@ page_3_layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.H1("Model Results and Benchmarking", className="text-center"), className="mb-5 mt-5")
     ]),
+    dcc.Dropdown(id='dropdown-selection', options=[{'label': name, 'value': name} for name in df["Building Name"].unique()], value='Building Name'),
     dbc.Row([
         dbc.Col([
-            html.H5("Model Results Visualization"),
-            dcc.Graph(id='model-results-graph'),
-        ]),
+            dcc.Graph(id='award'),
+        ], width=6),
+        dbc.Col([
+            dcc.Graph(id='year_trend_line'),
+        ], width=6),
     ], className="mt-5"),
     dbc.Row([
         dbc.Col([
-            html.H5("Scope 1 Emissions Breakdown"),
-            dcc.Graph(id='scope1-pie-chart')
-        ], width=4),
+            dcc.Graph(id='violin'),
+        ], width=6),
         dbc.Col([
-            html.H5("Scope 2 Emissions Breakdown"),
-            dcc.Graph(id='scope2-pie-chart')
-        ], width=4),
+            dcc.Graph(id='pie_1'),
+        ], width=3),
         dbc.Col([
-            html.H5("Scope 3 Emissions Breakdown"),
-            dcc.Graph(id='scope3-pie-chart')
-        ], width=4),
-    ], className="mt-5"),
-    dbc.Row([
-        dbc.Col([
-            html.H5("Benchmarking Visualization"),
-            dcc.Graph(id='benchmarking-graph', figure=px.bar(pd.DataFrame({
-                'Building': ['Building A', 'Building B', 'Building C'],
-                'Emissions Intensity': [120, 150, 110]
-            }), x='Building', y='Emissions Intensity', title="Emissions Intensity Benchmarking"))
-        ])
+            dcc.Graph(id='pie_2'),
+        ], width=3),
     ], className="mt-5"),
     dbc.Row([
         dbc.Col([
@@ -353,6 +398,86 @@ page_3_layout = dbc.Container([
         ], width=4),
     ])
 ])
+
+
+# Callbacks for the visualizations on Page 3
+
+# Line Chart
+@app.callback(
+    Output('year_trend_line', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_line_chart(value):
+    year_trend_df = df.groupby('YearDate').agg({'GHG_Intensity': 'mean'}).reset_index()
+    fig = px.line(year_trend_df, x='YearDate', y='GHG_Intensity', title="Greenhouse Gas Emissions Intensity Over Time",
+                  labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
+    fig.update_traces(line=dict(color="#365E32"))
+    return fig
+
+# Bubble Chart
+@app.callback(
+    Output('award', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_bubble_chart(value):
+    bubble_data = df.groupby('Award').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
+    x = [0, 1, 2, 3]
+    y = [2, 2, 2, 2]
+    bubble_data['x'] = x
+    bubble_data['y'] = y
+    fig = go.Figure(data=[go.Scatter(
+        x=x, y=y, mode='markers+text',
+        marker=dict(size=bubble_data["unique_building_count"], opacity=0.6, color="#365E32"),
+        text=bubble_data["Award"],
+        textposition="top center",
+        hovertext=bubble_data["unique_building_count"]
+    )])
+    fig.update_layout(title="Awards Distribution", showlegend=False,
+                      xaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False),
+                      yaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False))
+    return fig
+
+# Pie Chart - Scope Emissions
+@app.callback(
+    Output('pie_2', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_pie_scope(value):
+    melt_cols = ['Building Name', "Scope1", "Scope2", "Scope3"]
+    pie_data = pd.melt(df[melt_cols], id_vars='Building Name', var_name='key', value_name='value')
+    pie_data = pie_data.groupby('key').agg({"value": 'sum'}).reset_index()
+    fig = px.pie(pie_data, names='key', values='value', title="Scope Emissions Distribution",
+                 color_discrete_map={'Scope1': '#365E32', 'Scope2': '#81A263', 'Scope3': '#E7D37F'})
+    fig.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+    return fig
+
+# Pie Chart - Water and Waste
+@app.callback(
+    Output('pie_1', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_pie_water_waste(value):
+    melt_cols = ['Building Name', "Water", "Waste"]
+    pie_data = pd.melt(df[melt_cols], id_vars='Building Name', var_name='key', value_name='value')
+    pie_data = pie_data.groupby('key').agg({"value": 'sum'}).reset_index()
+    fig = px.pie(pie_data, names='key', values='value', title="Water and Waste Distribution",
+                 color_discrete_map={'Water': '#365E32', 'Waste': '#81A263'})
+    fig.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+    return fig
+
+# Violin Chart - GHG Intensity
+@app.callback(
+    Output('violin', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_violin_chart(value):
+    melt_cols = ['Building Name', "GHG_Intensity"]
+    h_data = df[melt_cols]
+    fig = px.violin(h_data, x="GHG_Intensity", box=True, points='all', title="GHG Intensity Violin Plot",
+                    labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
+    fig.update_traces(marker=dict(color="green"))
+    return fig
+
 
 
 # Define layout for Page 4 - Report Generation and Chatbot

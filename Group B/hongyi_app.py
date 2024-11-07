@@ -335,39 +335,44 @@ manual_input_layout = dbc.Container([
 
 # Define layout for Page 2 - Data Quality Check and EDA
 page_2_layout = dbc.Container([
-    dbc.NavbarSimple(
-        brand="Data Quality Check and EDA",
-        brand_href="/page-2",
-        color="success",
-        dark=True,
-        className="mb-5"
-    ),
-    dbc.Row([
-        dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis", className="text-center"), className="mb-5 mt-5")
-    ]),
-    dbc.Row([
-        dbc.Col(html.Div(id="eda-output", className="mt-4")),
-    ]),
-    dbc.Row([
-        dbc.Col([
-            html.H5("Visualization of Data Completeness"),
-            dcc.Graph(id='completeness-graph'),
-        ]),
-    ], className="mt-5"),
-    dbc.Row([
-        dbc.Col([
-            html.H5("Data Table Overview"),
-            dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'})
-        ])
-    ], className="mt-4"),
-    dbc.Row([
-        dbc.Col([
-            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1', style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3', className="mt-4", style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'})
-        ], width=3),
-    ], className="mt-5 mb-5")
-])
 
+    # Main title, centered and bold, with margin to add space from navbar
+    dbc.Row([
+        dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis", 
+                        className="text-center", 
+                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
+    ]),
+
+    # Data Completeness Visualization Section
+    dbc.Row([
+        dbc.Col(html.H5("Data Completeness Visualization", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='completeness-graph'), width=12),
+    ], className="mb-5"),
+
+    # Data Table Overview Section
+    dbc.Row([
+        dbc.Col(html.H5("Data Overview Table", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'}), width=12),
+    ], className="mb-5"),
+
+    # Buttons for navigation with centered alignment
+    dbc.Row([
+        dbc.Col([
+            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1', 
+                       style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
+        ], width=3),
+        dbc.Col([
+            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3', 
+                       style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
+        ], width=3),
+    ], justify="center", className="mt-4 mb-5"),
+], fluid=True)
 
 
 df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
@@ -376,43 +381,56 @@ df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
 
 # Define layout for Page 3 - Model Running and Visualization
 page_3_layout = dbc.Container([
-    dbc.NavbarSimple(
-        brand="Model Results and Benchmarking",
-        brand_href="/page-3",
-        color="success",
-        dark=True,
-        className="mb-5"
-    ),
+    # Main title for Model Results and Benchmarking
     dbc.Row([
-        dbc.Col(html.H1("Model Results and Benchmarking", className="text-center"), className="mb-5 mt-5")
+        dbc.Col(html.H1("Model Results and Benchmarking", 
+                        className="text-center", 
+                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
-    dcc.Dropdown(id='dropdown-selection', options=[{'label': name, 'value': name} for name in df["Building Name"].unique()], value='Building Name'),
-    dbc.Row([
-        dbc.Col([
-            dcc.Graph(id='award'),
-        ], width=6),
-        dbc.Col([
-            dcc.Graph(id='year_trend_line'),
-        ], width=6),
-    ], className="mt-5"),
-    dbc.Row([
-        dbc.Col([
-            dcc.Graph(id='violin'),
-        ], width=6),
-        dbc.Col([
-            dcc.Graph(id='pie_1'),
-        ], width=3),
-        dbc.Col([
-            dcc.Graph(id='pie_2'),
-        ], width=3),
-    ], className="mt-5"),
-    dbc.Row([
-        dbc.Col([
-            dbc.Button("Next: Generate Report", id="next-report-button", color="success", href='/page-4', className="mt-4", style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'})
-        ], width=3),
-    ], className="mt-5 mb-5")
-])
 
+    # Dropdown for selecting building names
+    dbc.Row([
+        dbc.Col(html.H5("Select Building Name", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Dropdown(
+            id='dropdown-selection', 
+            options=[{'label': name, 'value': name} for name in df["Building Name"].unique()], 
+            value='Building Name',
+            style={"width": "100%"}
+        ), width=6),
+    ], className="mb-5"),
+
+    # Section for Award and Year Trend Graphs
+    dbc.Row([
+        dbc.Col(html.H5("Model Results Visualizations", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='award'), width=6),
+        dbc.Col(dcc.Graph(id='year_trend_line'), width=6),
+    ], className="mb-5"),
+
+    # Section for Additional Graphs
+    dbc.Row([
+        dbc.Col(html.H5("Additional Analysis", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='violin'), width=6),
+        dbc.Col(dcc.Graph(id='pie_1'), width=3),
+        dbc.Col(dcc.Graph(id='pie_2'), width=3),
+    ], className="mb-5"),
+
+    # Button to navigate to the next page
+    dbc.Row([
+        dbc.Col([
+            dbc.Button("Next: Generate Report", id="next-report-button", color="success", href='/page-4', 
+                       style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
+        ], width=3),
+    ], justify="center", className="mt-4 mb-5"),
+], fluid=True)
 
 # Callbacks for the visualizations on Page 3
 
@@ -496,15 +514,10 @@ def update_violin_chart(value):
 
 # Define layout for Page 4 - Report Generation and Chatbot
 page_4_layout = dbc.Container([
-    dbc.NavbarSimple(
-        brand="Generate Report and Chat Assistance",
-        brand_href="/page-4",
-        color="success",
-        dark=True,
-        className="mb-5"
-    ),
     dbc.Row([
-        dbc.Col(html.H1("Generate Report and Chat Assistance", className="text-center"), className="mb-5 mt-5")
+        dbc.Col(html.H1("Generate Report and Chat Assistance", 
+                        className="text-center", 
+                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
     dbc.Row([
         dbc.Col([

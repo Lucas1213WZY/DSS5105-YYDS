@@ -499,7 +499,6 @@ page_4_layout = dbc.Container([
     dbc.Row([
         dbc.Col([
             html.H5("Generate Report"),
-            # Dropdown for selecting report format
             dcc.Dropdown(
                 id='report-format',
                 options=[
@@ -516,11 +515,27 @@ page_4_layout = dbc.Container([
     ], className="mb-5"),
     dbc.Row([
         dbc.Col([
-            html.H5("Chatbot Assistance"),
-            dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={'width': '100%'}),
-            html.Div(id='chatbot-response', className="mt-3")
+            html.H5("Chatbot Assistance", className="mb-3"),
+            html.Div([
+                dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
+                    'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'border': '1px solid #ced4da', 'marginBottom': '10px'
+                }),
+                html.Button('Send', id='send-button', n_clicks=0, style={
+                    'backgroundColor': '#17a2b8', 'color': 'white', 'border': 'none', 'borderRadius': '5px', 'padding': '8px 16px', 'marginBottom': '10px'
+                })
+            ], style={'display': 'flex', 'gap': '10px', 'flexDirection': 'column'}),
+            html.Div(id='chatbot-response', className="mt-3", style={
+                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
+            })
         ], width=6),
-    ])
+    ]),
+    dbc.Row([
+        dbc.Col([
+            dbc.Button("Home", id="home-button", color="success", href='/page-1', className="mt-4", style={
+                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'
+            })
+        ], width=3),
+    ], justify="center", className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
 ])
 
 

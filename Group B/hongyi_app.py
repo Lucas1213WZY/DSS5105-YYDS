@@ -46,7 +46,7 @@ app.layout = html.Div([
 # File upload section layout with logo image
 file_upload_layout = html.Div([
     html.Img(
-        src='./assets/teamlogo.png',
+        src='./teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',
@@ -128,7 +128,7 @@ manual_input_layout = dbc.Container([
             'position': 'absolute',
             'top': '10px',
             'right': '10px',
-            'width': '100px',  
+            'width': '500px',  
             'height': 'auto'   
         }
     ),
@@ -141,8 +141,12 @@ manual_input_layout = dbc.Container([
             dbc.Row([
                 dbc.Col([
                     html.H5("Region", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='region-input', type='text', placeholder="Enter Region", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                    dcc.Dropdown(
+                        id='region-dropdown',
+                        options=singapore_regions,
+                        placeholder="Select a Region",
+                        style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}
+                    )
                 ], width=6),
                 dbc.Col([
                     html.H5("Building Name", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),

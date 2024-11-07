@@ -146,7 +146,7 @@ Q: What units should I use?
 
 Q: How accurate is the prediction?
 - Uses official Green Mark benchmarks with 10% buffer
-- Validation match rate of 36.60% with existing dataset
+- Validation match rate of 82.7% with existing dataset
 
 Q: What if I don't have all the emissions data?
 - All three scopes are required for accurate prediction

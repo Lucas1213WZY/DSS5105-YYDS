@@ -46,7 +46,7 @@ app.layout = html.Div([
 # File upload section layout with logo image
 file_upload_layout = html.Div([
     html.Img(
-        src='./teamlogo.png',
+        src='./assets/teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',
@@ -76,12 +76,14 @@ file_upload_layout = html.Div([
             html.Div(id='file-upload-status', style={'marginTop': '15px', 'fontSize': '16px'}),
             dbc.Row([
                 dbc.Col([
-                    dbc.Button("Proceed to Data Quality Check", id="next-button-file", color="info", size="md", style={'width': '100%'}, href='/page-2')
+                    dbc.Button("Proceed to Data Quality Check", id="next-button-file", color="success", size="md", className="mt-4",
+                               style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='/page-2')
                 ], width=3),
             ], justify="center")
         ])
     ])
 ])
+
 
 
 @app.callback(
@@ -121,9 +123,18 @@ def update_output(contents, filename, last_modified):
 
 
 # Manual input section layout with logo image
+singapore_regions = [
+    {'label': 'Central', 'value': 'Central'},
+    {'label': 'North', 'value': 'North'},
+    {'label': 'Northeast', 'value': 'Northeast'},
+    {'label': 'East', 'value': 'East'},
+    {'label': 'West', 'value': 'West'}
+    
+]
+
 manual_input_layout = dbc.Container([
     html.Img(
-        src='./teamlogo.png',
+        src='./assets/teamlogo.png',
         style={
             'position': 'absolute',
             'top': '10px',
@@ -308,8 +319,8 @@ manual_input_layout = dbc.Container([
             ], className="mb-4"),
             dbc.Row([
                 dbc.Col([
-                    dbc.Button("Proceed to Data Quality Check", id="next-button", color="info", className="mr-2", 
-                               style={'fontSize': '16px', 'padding': '10px 20px', 'width': '100%'}, href='page-2')
+                    dbc.Button("Proceed to Data Quality Check", id="next-button", color="success", className="mt-4", 
+                               style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='page-2')
                 ], width=3),
             ], justify="center")  
         ])
@@ -322,13 +333,12 @@ manual_input_layout = dbc.Container([
 
 
 
-
 # Define layout for Page 2 - Data Quality Check and EDA
 page_2_layout = dbc.Container([
     dbc.NavbarSimple(
         brand="Data Quality Check and EDA",
         brand_href="/page-2",
-        color="primary",
+        color="success",
         dark=True,
         className="mb-5"
     ),
@@ -352,10 +362,10 @@ page_2_layout = dbc.Container([
     ], className="mt-4"),
     dbc.Row([
         dbc.Col([
-            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1'),
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="primary", href='/page-3', className="ml-2")
-        ], width=6),
-    ])
+            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1', style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
+            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3', className="mt-4", style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'})
+        ], width=3),
+    ], className="mt-5 mb-5")
 ])
 
 
@@ -369,7 +379,7 @@ page_3_layout = dbc.Container([
     dbc.NavbarSimple(
         brand="Model Results and Benchmarking",
         brand_href="/page-3",
-        color="primary",
+        color="success",
         dark=True,
         className="mb-5"
     ),
@@ -398,9 +408,9 @@ page_3_layout = dbc.Container([
     ], className="mt-5"),
     dbc.Row([
         dbc.Col([
-            dbc.Button("Next: Generate Report", id="next-report-button", color="primary", href='/page-4')
-        ], width=4),
-    ])
+            dbc.Button("Next: Generate Report", id="next-report-button", color="success", href='/page-4', className="mt-4", style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'})
+        ], width=3),
+    ], className="mt-5 mb-5")
 ])
 
 
@@ -489,7 +499,7 @@ page_4_layout = dbc.Container([
     dbc.NavbarSimple(
         brand="Generate Report and Chat Assistance",
         brand_href="/page-4",
-        color="primary",
+        color="success",
         dark=True,
         className="mb-5"
     ),
@@ -535,8 +545,47 @@ page_4_layout = dbc.Container([
                 'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'
             })
         ], width=3),
-    ], justify="center", className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
+    ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
 ])
+
+
+# Sample Q&A pairs for chatbot assistance
+qa_pairs = {
+    "ghg emissions intensity": "The GHG emissions intensity is calculated by dividing the total greenhouse gas emissions by the building's gross floor area. This provides an intensity metric (usually in kg CO₂ per square meter) that helps to standardize emissions across buildings of different sizes.",
+    "scope 1 emissions": "Scope 1 emissions are direct emissions from owned or controlled sources, such as fuel combustion on-site.",
+    "scope 2 emissions": "Scope 2 emissions are indirect emissions from the generation of purchased electricity used by the building.",
+    "scope 3 emissions": "Scope 3 emissions are other indirect emissions, like employee commutes or business travel, which are part of the value chain but not directly controlled by the building.",
+    "high scope 2 emissions": "High Scope 2 emissions often indicate significant electricity usage, which can come from lighting, HVAC, and other electrical equipment. Reducing electricity consumption or sourcing renewable energy could help reduce Scope 2 emissions.",
+    "reduce emissions from business travel": "To reduce emissions from business travel, consider virtual meetings instead of in-person travel, choosing direct flights over multiple connections, or using airlines with carbon offset programs.",
+    "benchmark emissions intensity": "The report includes a benchmarking chart that compares your building's emissions intensity to industry averages. This can provide insight into how efficiently your building operates relative to similar buildings.",
+    "reduce water and waste emissions": "To reduce water-related emissions, consider installing water-efficient fixtures, using rainwater for irrigation, and fixing leaks promptly. For waste-related emissions, implementing recycling programs, reducing single-use plastics, and managing food waste can all contribute to emissions reductions.",
+    "employee commute data": "Employee commute data is part of Scope 3 emissions. It reflects the environmental impact of employees traveling to and from the workplace. Encouraging sustainable commuting options, like public transit, carpooling, or cycling, can help reduce this component of the building’s carbon footprint.",
+    "missing data": "The data quality check will indicate if there are missing values in your dataset. Missing data can impact the accuracy of the report, especially in Scope 3 categories. We recommend ensuring data completeness for a more reliable calculation.",
+    "procurement emissions": "Emissions from procurement are based on estimated emissions for the transportation and production of goods purchased for the building. For accurate calculations, include information on the type of freight and the distance traveled.",
+    "ghg emissions trend line": "The trend line shows your building's GHG emissions intensity over time. A downward trend indicates that emissions per unit of area are decreasing, which is positive.",
+    "actions to reduce emissions": "If emissions are higher than expected, consider energy-saving initiatives, reducing business travel, or using greener procurement options. Conducting an energy audit and promoting green commuting options are also good steps."
+}
+
+
+# Chatbot callback to provide responses based on user input only after clicking "Send"
+@app.callback(
+    Output('chatbot-response', 'children'),
+    [Input('send-button', 'n_clicks')],
+    [State('chatbot-input', 'value')]
+)
+def chatbot_response(n_clicks, user_input):
+    if n_clicks > 0 and user_input:  # Check if 'Send' button is clicked and input is not empty
+        # Default response if no keywords match
+        response = "I'm sorry, I didn't understand your question. Could you please rephrase or try asking something else?"
+        
+        # Check for keywords in user input to respond accordingly
+        for keyword, answer in qa_pairs.items():
+            if keyword in user_input.lower():
+                response = answer
+                break
+        
+        return response
+    return ""  # Return an empty string if no input or button is not clicked
 
 
 

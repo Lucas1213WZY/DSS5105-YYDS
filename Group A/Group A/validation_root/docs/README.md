@@ -72,7 +72,3 @@ feedback_collector.collect_feedback(...)
 ## Documentation
 - See integration_guide.md for detailed integration instructions
 - See notebooks/validation_testing.ipynb for usage examples
-
-## Team
-- Subgroup A: Validation System
-- Subgroup B: Frontend Integration

@@ -10,12 +10,12 @@ from dash_extensions import BeforeAfter
 import dash_leaflet as dl
 import base64
 import plotly.graph_objects as go
-import openai 
+import openai
 
 # Initialize the OpenAI client
 openai.api_key = "sk-svcacct-yirqs5Y1sVriNR6qGBs7ZSSRhXZd-uvMQdebTequv5z2oAy6rjhnnSQ_B6740T3BlbkFJyk98lfvPOiui5GB-FMMIMLWA8UY4bkO30YxytnTW8X505TFJmXIgswzK0sFAA"
 
-    
+
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY], suppress_callback_exceptions=True)
 server = app.server
@@ -50,7 +50,7 @@ sidebar = html.Div(
             "font-weight": "bold",
             "border-radius": "5px",
         }),
-        dcc.Link("Generate Report and Chat Assistance", href="/page-4", style={
+        dcc.Link("Report and Chatbox", href="/page-4", style={
             "display": "block",
             "color": "white",
             "padding": "12px 20px",
@@ -79,8 +79,6 @@ sidebar = html.Div(
 )
 
 
-
-
 # Button to toggle the sidebar
 toggle_button = html.Button("☰", id="toggle-button", style={
     "position": "absolute",
@@ -103,6 +101,54 @@ toggle_button_style_hover = {
     "background-color": "#285e5e",
 }
 
+
+# Callback to toggle the sidebar and adjust main content margin
+@app.callback(
+    [Output("sidebar", "style"), Output("main-content", "style"), Output("toggle-button", "style")],
+    [Input("toggle-button", "n_clicks")],
+    [State("sidebar", "style"), State("main-content", "style"), State("toggle-button", "style")]
+)
+def toggle_sidebar(n_clicks, sidebar_style, main_content_style, toggle_button_style):
+    if n_clicks and sidebar_style["transform"] == "translateX(-100%)":
+        # Show sidebar and adjust toggle button position to stay to the right of the sidebar
+        sidebar_style["transform"] = "translateX(0)"
+        main_content_style["margin-left"] = "200px"  # Adjust for sidebar width
+        toggle_button_style["left"] = "220px"  # Place button to the right of the sidebar
+    else:
+        # Hide sidebar and reset toggle button position
+        sidebar_style["transform"] = "translateX(-100%)"
+        main_content_style["margin-left"] = "0px"
+        toggle_button_style["left"] = "20px"  # Reset button to the original position
+    return sidebar_style, main_content_style, toggle_button_style
+
+
+@app.callback(
+    Output("logo-wrapper", "style"),
+    [Input("toggle-button", "n_clicks")],
+    [State("logo-wrapper", "style")]
+)
+def adjust_logo_position(n_clicks, current_style):
+    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
+        # Shift logo further to the right
+        current_style["right"] = "0px"  # Adjust to match sidebar width
+    else:
+        # Reset logo position when sidebar is hidden
+        current_style["right"] = "40px"
+    return current_style
+
+@app.callback(
+    Output("manual-logo-wrapper", "style"),
+    [Input("toggle-button", "n_clicks")],
+    [State("manual-logo-wrapper", "style")]
+)
+def adjust_logo_position(n_clicks, current_style):
+    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
+        # Shift logo further to the right
+        current_style["right"] = "0px"  # Adjust to match sidebar width
+    else:
+        # Reset logo position when sidebar is hidden
+        current_style["right"] = "40px"
+    return current_style
 
 
 # Main layout
@@ -200,30 +246,30 @@ file_upload_layout = html.Div([
 
 
 @app.callback(
-    Output('file-upload-status', 'children'),  
-    Input('upload-data', 'contents'),  
-    State('upload-data', 'filename'),  
-    State('upload-data', 'last_modified')  
+    Output('file-upload-status', 'children'),
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    State('upload-data', 'last_modified')
 )
 def update_output(contents, filename, last_modified):
     if contents is not None:
         content_type, content_string = contents.split(',')
-    
+
         decoded = base64.b64decode(content_string)
-        
+
         try:
-            
+
             if filename.endswith('.csv'):
                 df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
             elif filename.endswith('.xlsx'):
                 df = pd.read_excel(io.BytesIO(decoded))
             else:
                 return html.Div(['File format not supported，please upload csv or xlsx file'])
-            
+
             return html.Div([
                 html.H5(f"File {filename} uploaded！"),
                 dash_table.DataTable(
-                    data=df.head().to_dict('records'),  
+                    data=df.head().to_dict('records'),
                     columns=[{'name': i, 'id': i} for i in df.columns],
                     style_table={'overflowX': 'auto'}
                 )
@@ -231,18 +277,46 @@ def update_output(contents, filename, last_modified):
         except Exception as e:
             print(f"Error reading file: {e}")
             return html.Div(['File read failed，please check for the file format.'])
-    
+
     return html.Div(['File not uploaded.'])
 
 
 # Manual input section layout with logo image
 singapore_regions = [
-    {'label': 'Central', 'value': 'Central'},
-    {'label': 'North', 'value': 'North'},
-    {'label': 'Northeast', 'value': 'Northeast'},
-    {'label': 'East', 'value': 'East'},
-    {'label': 'West', 'value': 'West'}
-    
+    {'label': 'Geylang', 'value': 'Geylang'},
+    {'label': 'Queenstown', 'value': 'Queenstown'},
+    {'label': 'Museum', 'value': 'Museum'},
+    {'label': 'Downtown Core', 'value': 'Downtown Core'},
+    {'label': 'Outram', 'value': 'Outram'},
+    {'label': 'Marine Parade', 'value': 'Marine Parade'},
+    {'label': 'Ang Mo Kio', 'value': 'Ang Mo Kio'},
+    {'label': 'Bukit Batok', 'value': 'Bukit Batok'},
+    {'label': 'Jurong East', 'value': 'Jurong East'},
+    {'label': 'Hougang', 'value': 'Hougang'},
+    {'label': 'Woodlands', 'value': 'Woodlands'},
+    {'label': 'Singapore River', 'value': 'Singapore River'},
+    {'label': 'Tampines', 'value': 'Tampines'},
+    {'label': 'Orchard', 'value': 'Orchard'},
+    {'label': 'Western Water Catchment', 'value': 'Western Water Catchment'},
+    {'label': 'Toa Payoh', 'value': 'Toa Payoh'},
+    {'label': 'Jurong West', 'value': 'Jurong West'},
+    {'label': 'Changi', 'value': 'Changi'},
+    {'label': 'Bedok', 'value': 'Bedok'},
+    {'label': 'Newton', 'value': 'Newton'},
+    {'label': 'Kallang', 'value': 'Kallang'},
+    {'label': 'Tanglin', 'value': 'Tanglin'},
+    {'label': 'Rochor', 'value': 'Rochor'},
+    {'label': 'Bukit Merah', 'value': 'Bukit Merah'},
+    {'label': 'Bukit Timah', 'value': 'Bukit Timah'},
+    {'label': 'Bishan', 'value': 'Bishan'},
+    {'label': 'Choa Chu Kang', 'value': 'Choa Chu Kang'},
+    {'label': 'Novena', 'value': 'Novena'},
+    {'label': 'Bukit Panjang', 'value': 'Bukit Panjang'},
+    {'label': 'River Valley', 'value': 'River Valley'},
+    {'label': 'Clementi', 'value': 'Clementi'},
+    {'label': 'Sengkang', 'value': 'Sengkang'},
+    {'label': 'Southern Islands', 'value': 'Southern Islands'},
+    {'label': 'Yishun', 'value': 'Yishun'}
 ]
 
 manual_input_layout = dbc.Container([
@@ -250,7 +324,7 @@ manual_input_layout = dbc.Container([
         html.Img(
             src='./assets/teamlogo.png',
             style={
-                'width': '220px',  # Adjust width as necessary
+                'width': '220px',
                 'height': 'auto',
             }
         ),
@@ -259,198 +333,173 @@ manual_input_layout = dbc.Container([
             'position': 'absolute',
             'top': '55px',
             'right': '40px',
-            'transition': 'right 0.3s ease'  # Add transition for smooth effect
+            'transition': 'right 0.3s ease'
         }
     ),
     dbc.Card([
         dbc.CardHeader(html.H2("Manual Data Input", style={
             'textAlign': 'center', 'fontWeight': 'bold', 'fontSize': '28px', 'padding': '20px',
-            'backgroundColor': '#f8f9fa', 'borderBottom': '2px solid #66A3C2'  
+            'backgroundColor': '#f8f9fa', 'borderBottom': '2px solid #66A3C2'
         })),
         dbc.CardBody([
+            # Building Info Section
+            dbc.Card([
+                dbc.CardHeader(html.H4("Building Info Data", style={'fontWeight': 'bold', 'fontSize': '22px', 'color': '#343a40'}),
+                               style={'backgroundColor': '#f5f5f5'}),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Region", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Dropdown(
+                                id='region-dropdown',
+                                options=singapore_regions,
+                                placeholder="Select a Region",
+                                style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}
+                            )
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Building Name", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='building-input', type='text', placeholder="Enter Building Name",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Zip Code", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='zip-input', type='number', placeholder="Enter Zip Code",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Year", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='year-input', type='number', placeholder="Enter Year",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Size (sqft)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='size-input', type='number', placeholder="Enter Building Size",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Number of Employees", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='employee-input', type='number', placeholder="Enter Number of Employees",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                ])
+            ], className="mb-4", style={'border': '1px solid #ced4da', 'borderRadius': '10px', "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)"}),
+
+            # Emission Info Section
+            dbc.Card([
+                dbc.CardHeader(html.H4("Emission Data", style={'fontWeight': 'bold', 'fontSize': '22px', 'color': '#343a40'}),
+                                style={'backgroundColor': '#f5f5f5'}),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Energy (in kWh)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='energy-input', type='number', placeholder="Enter Energy Consumption",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Water (in m³)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='water-input', type='number', placeholder="Enter Water Consumption",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Waste (in t)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='waste-input', type='number', placeholder="Enter Waste Generated",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                ])
+            ], className="mb-4", style={'border': '1px solid #ced4da', 'borderRadius': '10px', "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)"}),
+
+            # Transportation Section
+            dbc.Card([
+                dbc.CardHeader(html.H4("Transportation Data", style={'fontWeight': 'bold', 'fontSize': '22px', 'color': '#343a40'}),
+                                style={'backgroundColor': '#f5f5f5'}),
+                dbc.CardBody([
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Subway/MRT Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='subway-commute-input', type='number', placeholder="Enter distance (km)",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Bus Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='bus-commute-input', type='number', placeholder="Enter distance (km)",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Taxi/Private Car Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='taxi-commute-input', type='number', placeholder="Enter distance (km)",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Business Travel (Flight, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='business-travel-flight-input', type='number', placeholder="Enter amount in $SDG",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Business Travel (Hotel, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='business-travel-hotel-input', type='number', placeholder="Enter amount in $SDG",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Procurement with Air Freight (t * km)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='business-procurement-air-freight-input', type='number', placeholder="Enter weight/volume",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                        dbc.Col([
+                            html.H5("Procurement with Diesel Truck Freight (t * km)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='business-procurement-diesel-truck-input', type='number', placeholder="Enter weight/volume",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.H5("Procurement with Electric Truck Freight (t * km)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                            dcc.Input(id='business-procurement-electric-truck-input', type='number', placeholder="Enter weight/volume",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                        ], width=6),
+                    ], className="mb-4"),
+                ])
+            ], className="mb-4", style={'border': '1px solid #ced4da', 'borderRadius': '10px', "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)"}),
+
             dbc.Row([
                 dbc.Col([
-                    html.H5("Region", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Dropdown(
-                        id='region-dropdown',
-                        options=singapore_regions,
-                        placeholder="Select a Region",
-                        style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}
-                    )
-                ], width=6),
-                dbc.Col([
-                    html.H5("Building Name", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='building-input', type='text', placeholder="Enter Building Name", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Year", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='year-input', type='number', placeholder="Enter Year",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Latitude", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='latitude-input', type='number', placeholder="Enter Latitude", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Longitude", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='longitude-input', type='number', placeholder="Enter Longitude", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Address", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='address-input', type='text', placeholder="Enter Address", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=12),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Type of Function (Building)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='type-function-input', type='text', placeholder="Enter Building Function Type", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Size", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Dropdown(
-                        id='size-input',
-                        options=[
-                            {'label': 'Large', 'value': 'Large'},
-                            {'label': 'Medium', 'value': 'Medium'},
-                            {'label': 'Small', 'value': 'Small'}
-                        ],
-                        placeholder="Select Size",
-                        style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}
-                    ),
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Number of Employees", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='employee-input', type='number', placeholder="Enter Number of Employees", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Transportation (CO2 Emissions in kg)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='transportation-input', type='number', placeholder="Enter Transportation CO2 Emissions", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Gross Floor Area (GFA in m²)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='gfa-input', type='number', placeholder="Enter GFA", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Energy (in kWh)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='energy-input', type='number', placeholder="Enter Energy Consumption", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Waste (in kg)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='waste-input', type='number', placeholder="Enter Waste Generated", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Water (in m³)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='water-input', type='number', placeholder="Enter Water Consumption", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Scope 1 Emissions", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='scope1-input', type='number', placeholder="Enter Scope 1 emissions", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
-                    dbc.Tooltip("Direct emissions from owned or controlled sources.", target='scope1-input')
-                ], width=4),
-                dbc.Col([
-                    html.H5("Scope 2 Emissions", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='scope2-input', type='number', placeholder="Enter Scope 2 emissions", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
-                    dbc.Tooltip("Indirect emissions from the generation of purchased electricity.", target='scope2-input')
-                ], width=4),
-                dbc.Col([
-                    html.H5("Scope 3 Emissions", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='scope3-input', type='number', placeholder="Enter Scope 3 emissions", 
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
-                    dbc.Tooltip("All other indirect emissions that occur in the value chain.", target='scope3-input')
-                ], width=4),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Subway/MRT Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='subway-commute-input', type='number', placeholder="Enter distance (km)",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Bus Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='bus-commute-input', type='number', placeholder="Enter distance (km)",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Taxi/Private Car Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='taxi-commute-input', type='number', placeholder="Enter distance (km)",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Business Travel (Flight, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='business-travel-flight-input', type='number', placeholder="Enter amount in $SDG",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Business Travel (Hotel, $SDG/year)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='business-travel-hotel-input', type='number', placeholder="Enter amount in $SDG",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Business Procurement (Air Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='business-procurement-air-freight-input', type='number', placeholder="Enter weight/volume",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-                dbc.Col([
-                    html.H5("Business Procurement (Diesel Truck Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='business-procurement-diesel-truck-input', type='number', placeholder="Enter weight/volume",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-            dbc.Row([
-                dbc.Col([
-                    html.H5("Business Procurement (Electric Truck Freight)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                    dcc.Input(id='business-procurement-electric-truck-input', type='number', placeholder="Enter weight/volume",
-                              style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
-                ], width=6),
-            ], className="mb-4"),
-             dbc.Row([
-                dbc.Col([
-                    dbc.Button("Proceed to Data Quality Check", id="next-button", color="success", className="mt-4", 
+                    dbc.Button("Proceed to Data Quality Check", id="next-button", color="success", className="mt-4",
                                style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='page-2')
                 ], width=3),
-            ], justify="center")  
+            ], justify="center")
         ])
     ], className="mb-5", style={
-        'backgroundColor': '#ffffff', 
+        'backgroundColor': '#ffffff',
         'boxShadow': '0 4px 12px rgba(0, 0, 0, 0.1)',
-        'padding': '20px'  
+        'padding': '20px'
     })
 ], fluid=True)
 
 
+# Callback to switch between file upload and manual input
+@app.callback(
+    Output('input-section', 'children'),
+    [Input('input-method', 'value')]
+)
+def display_input_method(selected_method):
+    if selected_method == 'file':
+        return file_upload_layout
+    elif selected_method == 'manual':
+        return manual_input_layout
 
 
 # Define layout for Page 2 - Data Quality Check and EDA
@@ -458,8 +507,8 @@ page_2_layout = dbc.Container([
 
     # Main title, centered and bold, with margin to add space from navbar
     dbc.Row([
-        dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis", 
-                        className="text-center", 
+        dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis",
+                        className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
 
@@ -484,11 +533,11 @@ page_2_layout = dbc.Container([
     # Buttons for navigation with centered alignment
     dbc.Row([
         dbc.Col([
-            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1', 
+            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1',
                        style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
         ], width=3),
         dbc.Col([
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3', 
+            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3',
                        style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
         ], width=3),
     ], justify="center", className="mt-4 mb-5"),
@@ -503,8 +552,8 @@ df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
 page_3_layout = dbc.Container([
     # Main title for Model Results and Benchmarking
     dbc.Row([
-        dbc.Col(html.H1("Model Results and Benchmarking", 
-                        className="text-center", 
+        dbc.Col(html.H1("Model Results and Benchmarking",
+                        className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
 
@@ -515,8 +564,8 @@ page_3_layout = dbc.Container([
     ], className="mt-3 mb-2"),
     dbc.Row([
         dbc.Col(dcc.Dropdown(
-            id='dropdown-selection', 
-            options=[{'label': name, 'value': name} for name in df["Building Name"].unique()], 
+            id='dropdown-selection',
+            options=[{'label': name, 'value': name} for name in df["Building Name"].unique()],
             value='Building Name',
             style={"width": "100%"}
         ), width=6),
@@ -546,7 +595,7 @@ page_3_layout = dbc.Container([
     # Button to navigate to the next page
     dbc.Row([
         dbc.Col([
-            dbc.Button("Next: Generate Report", id="next-report-button", color="success", href='/page-4', 
+            dbc.Button("Next: Generate Report", id="next-report-button", color="success", href='/page-4',
                        style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}),
         ], width=3),
     ], justify="center", className="mt-4 mb-5"),
@@ -635,8 +684,8 @@ def update_violin_chart(value):
 # Define layout for Page 4 - Report Generation and Chatbot
 page_4_layout = dbc.Container([
     dbc.Row([
-        dbc.Col(html.H1("Generate Report and Chat Assistance", 
-                        className="text-center", 
+        dbc.Col(html.H1("Generate Report and Chat Assistance",
+                        className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
     dbc.Row([
@@ -679,7 +728,6 @@ page_4_layout = dbc.Container([
         ], width=3),
     ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
 ])
-
 
 
 # Function to get chatbot response
@@ -725,133 +773,22 @@ def update_chatbot_response(n_clicks, user_input):
     return ""
 
 
-# Callback to toggle the sidebar and adjust main content margin
-@app.callback(
-    [Output("sidebar", "style"), Output("main-content", "style"), Output("toggle-button", "style")],
-    [Input("toggle-button", "n_clicks")],
-    [State("sidebar", "style"), State("main-content", "style"), State("toggle-button", "style")]
-)
-def toggle_sidebar(n_clicks, sidebar_style, main_content_style, toggle_button_style):
-    if n_clicks and sidebar_style["transform"] == "translateX(-100%)":
-        # Show sidebar and adjust toggle button position to stay to the right of the sidebar
-        sidebar_style["transform"] = "translateX(0)"
-        main_content_style["margin-left"] = "200px"  # Adjust for sidebar width
-        toggle_button_style["left"] = "220px"  # Place button to the right of the sidebar
-    else:
-        # Hide sidebar and reset toggle button position
-        sidebar_style["transform"] = "translateX(-100%)"
-        main_content_style["margin-left"] = "0px"
-        toggle_button_style["left"] = "20px"  # Reset button to the original position
-    return sidebar_style, main_content_style, toggle_button_style
-
-
-@app.callback(
-    Output("logo-wrapper", "style"),
-    [Input("toggle-button", "n_clicks")],
-    [State("logo-wrapper", "style")]
-)
-def adjust_logo_position(n_clicks, current_style):
-    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
-        current_style["right"] = "0px"  # Adjust to match sidebar width
-    else:
-        # Reset logo position when sidebar is hidden
-        current_style["right"] = "40px"
-    return current_style
-
-@app.callback(
-    Output("manual-logo-wrapper", "style"),
-    [Input("toggle-button", "n_clicks")],
-    [State("manual-logo-wrapper", "style")]
-)
-def adjust_logo_position(n_clicks, current_style):
-    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
-        current_style["right"] = "0px"  # Adjust to match sidebar width
-    else:
-        # Reset logo position when sidebar is hidden
-        current_style["right"] = "40px"
-    return current_style
-
-
-
-# Combine callback to handle both navigation and method switching
-@app.callback(Output('page-content', 'children'),
-              Input('url', 'pathname'))
-def display_page(pathname):
-    if pathname == '/page-2':
-        return page_2_layout
-    elif pathname == '/page-3':
-        return page_3_layout
-    elif pathname == '/page-4':
-        return page_4_layout
-    elif pathname == '/page-5':
-        return page_5_layout
-    else:
-        return html.Div([
-            dcc.RadioItems(
-                id='input-method',
-                options=[
-                    {'label': 'Upload File', 'value': 'file'},
-                    {'label': 'Manual Input', 'value': 'manual'}
-                ],
-                value='file',
-                labelStyle={
-                    'display': 'inline-block',
-                    'margin-right': '50px',
-                    'fontSize': '18px',
-                    'fontWeight': '600',
-                    'color': '#3a3a3a',
-                    'cursor': 'pointer',
-                    'padding': '10px 20px',
-                    'backgroundColor': '#ffffff',
-                    'borderRadius': '25px',
-                    'border': '2px solid #dedede',
-                    'transition': 'all 0.3s ease',
-                },
-                inputStyle={
-                    'margin-right': '10px',
-                    'transform': 'scale(1.1)',
-                    'verticalAlign': 'middle',
-                },
-                style={
-                    'textAlign': 'center',
-                    'marginTop': '30px',
-                    'marginBottom': '30px',
-                    'padding': '20px',
-                    'borderRadius': '15px',
-                }
-            ),
-            html.Div(id='input-section')
-        ])
-
-
-
-# Callback to switch between file upload and manual input
-@app.callback(
-    Output('input-section', 'children'),
-    [Input('input-method', 'value')]
-)
-def display_input_method(selected_method):
-    if selected_method == 'file':
-        return file_upload_layout
-    elif selected_method == 'manual':
-        return manual_input_layout
 
 # generate report
 @app.callback(
     Output('download-report', 'data'),
     Input('report-button', 'n_clicks')
 )
+
+
 def generate_report(n_clicks):
     if n_clicks:
         try:
             # Static title for the report
             report_title = "ESG Performance Analysis Report"
-            logo_url = '/assets/teamlogo.png'
 
             # Title section with logo for HTML/PDF
-            logo_section = f"<div style='text-align:center;'><img src='{logo_url}' style='width:500px;'></div>"
+            logo_section = f"<div style='text-align:center;'><src='assests/teamlogo.png' style='width:220px;'></div>"
             title_section = f"{logo_section}<h1 style='text-align:center;'>ESG Performance Analysis Report</h1>"
 
             # Content for each report section
@@ -864,11 +801,11 @@ def generate_report(n_clicks):
             <h2>Introduction to ESG Reporting Analysis</h2>
             <p><strong>Purpose of the Analysis</strong></p>
             <p>ESG reporting is increasingly critical for understanding the environmental impact and sustainability performance of organizations. This report leverages our platform’s analytics to provide a data-driven view of the submitted dataset, focusing on GHG emissions and resource management metrics.</p>
-            
+
             <h2>Methodology</h2>
             <p><strong>Data Processing and Visualization</strong></p>
             <p>The uploaded dataset underwent several stages of processing, including data quality checks, normalization, and segmentation by relevant categories (e.g., certification levels, emissions scopes). For commuting data in Scope 3, we have regional factors to adjust your value.</p>
-            
+
             <p><strong>Automated Analysis and Model Selection</strong></p>
             <p>This analysis was conducted through our platform’s advanced analytics, which includes an automated model selection process to identify the best statistical or machine learning model for your data type. By evaluating multiple models based on their fit and predictive accuracy, the platform ensures that each analysis component—such as trend detection, emissions distribution, and resource usage breakdown—is optimized for accuracy and relevance.</p>
             """
@@ -877,7 +814,7 @@ def generate_report(n_clicks):
             <h2>Scope of Reporting</h2>
             <p><strong>Reporting Period</strong></p>
             <p>The analysis covers data entries from January 1, 2023, to December 31, 2023. All findings are based on the data within this timeframe, as provided in the uploaded dataset.</p>
-            
+
             <p><strong>Data Boundaries</strong></p>
             <p>The dataset includes various entities, each contributing to the total emissions and resource metrics. This report reflects the aggregated and segmented data as processed by our platform, without further boundary restrictions or exclusions.</p>
             """
@@ -956,7 +893,7 @@ def generate_report(n_clicks):
                     <body>
                     <!-- Logo at the top of the report -->
                     <div style="text-align: center; margin-bottom: 20px;">
-                    <img src="/assets/teamlogo.png" alt="Company Logo" style="width: 500px; height: auto;">
+                    <img src='/assets/teamlogo.png' alt="Company Logo" style="width: 220px; height: auto;">
                     </div>
                         {title_section}
                         {executive_summary}
@@ -979,10 +916,58 @@ def generate_report(n_clicks):
         except Exception as e:
             print(f"Error during report generation: {e}")
             return None
-            
 
+
+# Combine callback to handle both navigation and method switching
+@app.callback(Output('page-content', 'children'),
+              Input('url', 'pathname'))
+def display_page(pathname):
+    if pathname == '/page-2':
+        return page_2_layout
+    elif pathname == '/page-3':
+        return page_3_layout
+    elif pathname == '/page-4':
+        return page_4_layout
+    elif pathname == '/page-5':
+        return page_5_layout
+    else:
+        return html.Div([
+            dcc.RadioItems(
+                id='input-method',
+                options=[
+                    {'label': 'Upload File', 'value': 'file'},
+                    {'label': 'Manual Input', 'value': 'manual'}
+                ],
+                value='file',
+                labelStyle={
+                    'display': 'inline-block',
+                    'margin-right': '50px',
+                    'fontSize': '18px',
+                    'fontWeight': '600',
+                    'color': '#3a3a3a',
+                    'cursor': 'pointer',
+                    'padding': '10px 20px',
+                    'backgroundColor': '#ffffff',
+                    'borderRadius': '25px',
+                    'border': '2px solid #dedede',
+                    'transition': 'all 0.3s ease',
+                },
+                inputStyle={
+                    'margin-right': '10px',
+                    'transform': 'scale(1.1)',
+                    'verticalAlign': 'middle',
+                },
+                style={
+                    'textAlign': 'center',
+                    'marginTop': '30px',
+                    'marginBottom': '30px',
+                    'padding': '20px',
+                    'borderRadius': '15px',
+                }
+            ),
+            html.Div(id='input-section')
+        ])
 
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
-

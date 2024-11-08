@@ -10,37 +10,90 @@ from dash_extensions import BeforeAfter
 import dash_leaflet as dl
 import base64
 import plotly.graph_objects as go
+import openai 
 
+# Initialize the OpenAI client
+openai.api_key = "sk-svcacct-yirqs5Y1sVriNR6qGBs7ZSSRhXZd-uvMQdebTequv5z2oAy6rjhnnSQ_B6740T3BlbkFJyk98lfvPOiui5GB-FMMIMLWA8UY4bkO30YxytnTW8X505TFJmXIgswzK0sFAA"
 
+    
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY], suppress_callback_exceptions=True)
 server = app.server
 
+# Sidebar layout
 
-# Main layout
-app.layout = html.Div([
-    # Navbar with centered title "GHG Emissions Calculator"
-    html.Div(
-        dbc.NavbarSimple(
-            brand="GHG Emissions Calculator", 
-            brand_href="/",
-            color="success",
-            dark=True,
-            style={
-                "fontSize": "48px",
-                "fontWeight": "bold",
-                "textAlign": "center",
-                "justifyContent": "center",
-                "padding": "30px",
-                "margin-bottom": "30px"
-            }
+sidebar = html.Div(
+    [
+        html.H2("Sidebar", style={"color": "white"}),
+        html.Hr(),
+        html.P("Navigation", style={"color": "white"}),
+        dcc.Link("Data Input", href="/data-input", style={"display": "block", "color": "white", "padding": "10px 0"}),
+        dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/data-quality", style={"display": "block", "color": "white", "padding": "10px 0"}),
+        dcc.Link("Model Results and Benchmarking", href="/model-results", style={"display": "block", "color": "white", "padding": "10px 0"}),
+        dcc.Link("Generate Report and Chat Assistance", href="/generate-report", style={"display": "block", "color": "white", "padding": "10px 0"}),
+    ],
+    id="sidebar",
+    style={
+        "padding": "10px",
+        "background-color": "#333",
+        "color": "white",
+        "width": "200px",
+        "height": "100vh",
+        "position": "fixed",
+        "left": "0",
+        "top": "0",
+        "overflow": "auto",
+        "transform": "translateX(-100%)",  # Initially hidden
+        "transition": "transform 0.3s ease",  # Smooth transition
+    },
+)
+
+# Button to toggle the sidebar
+toggle_button = html.Button("☰", id="toggle-button", style={
+    "position": "fixed",
+    "top": "20px",
+    "left": "20px",
+    "z-index": "1",
+    "padding": "10px",
+    "font-size": "24px",
+    "background-color": "#2C7A7B",
+    "color": "white",
+    "border": "none",
+    "cursor": "pointer",
+})
+
+# Main layout with sidebar integrated
+app.layout = html.Div(
+    [
+        toggle_button,
+        sidebar,  # Add sidebar
+        html.Div(
+            id="main-content",
+            children=[
+                html.Div(
+                    dbc.NavbarSimple(
+                        brand="GHG Emissions Calculator",
+                        brand_href="/",
+                        color="success",
+                        dark=True,
+                        style={
+                            "fontSize": "48px",
+                            "fontWeight": "bold",
+                            "textAlign": "center",
+                            "justifyContent": "center",
+                            "padding": "30px",
+                            "margin-bottom": "30px",
+                        },
+                    ),
+                    style={"textAlign": "center"},
+                ),
+                dcc.Location(id="url", refresh=False),
+                html.Div(id="page-content"),
+            ],
+            style={"padding": "20px", "transition": "margin-left 0.3s ease"},  # Smooth transition for margin
         ),
-        style={'textAlign': 'center'}
-    ),
-    
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
-])
+    ]
+)
 
 
 # File upload section layout with logo image
@@ -561,7 +614,7 @@ page_4_layout = dbc.Container([
     ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
 ])
 
-
+    
 # Sample Q&A pairs for chatbot assistance
 qa_pairs = {
     "ghg emissions intensity": "The GHG emissions intensity is calculated by dividing the total greenhouse gas emissions by the building's gross floor area. This provides an intensity metric (usually in kg CO₂ per square meter) that helps to standardize emissions across buildings of different sizes.",
@@ -579,26 +632,65 @@ qa_pairs = {
     "actions to reduce emissions": "If emissions are higher than expected, consider energy-saving initiatives, reducing business travel, or using greener procurement options. Conducting an energy audit and promoting green commuting options are also good steps."
 }
 
+# Function to get chatbot response
+def get_chatbot_response(user_input):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": user_input}]
+        )
+        return response.choices[0].message["content"]
+    except Exception as e:
+        return f"Error: {e}"
 
-# Chatbot callback to provide responses based on user input only after clicking "Send"
+
+# Callback for chatbot response
 @app.callback(
     Output('chatbot-response', 'children'),
-    [Input('send-button', 'n_clicks')],
-    [State('chatbot-input', 'value')]
+    Input('send-button', 'n_clicks'),
+    State('chatbot-input', 'value')
 )
-def chatbot_response(n_clicks, user_input):
-    if n_clicks > 0 and user_input:  # Check if 'Send' button is clicked and input is not empty
-        # Default response if no keywords match
-        response = "I'm sorry, I didn't understand your question. Could you please rephrase or try asking something else?"
-        
-        # Check for keywords in user input to respond accordingly
-        for keyword, answer in qa_pairs.items():
-            if keyword in user_input.lower():
-                response = answer
-                break
-        
-        return response
-    return ""  # Return an empty string if no input or button is not clicked
+def update_chatbot_response(n_clicks, user_input):
+    if n_clicks > 0 and user_input:
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant specialized in GHG emissions."},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=150,
+                temperature=0.7
+            )
+            generated_response = response.choices[0].message.content.strip()
+            return html.Div(generated_response, style={
+                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
+                'padding': '15px', 'backgroundColor': '#f8f9fa'
+            })
+        except Exception as e:
+            return html.Div(f"Error: {str(e)}", style={
+                'color': 'red', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
+                'padding': '15px', 'backgroundColor': '#f8f9fa'
+            })
+    return ""
+
+
+# Callback to toggle the sidebar and adjust main content margin
+@app.callback(
+    [Output("sidebar", "style"), Output("main-content", "style")],
+    [Input("toggle-button", "n_clicks")],
+    [State("sidebar", "style"), State("main-content", "style")]
+)
+def toggle_sidebar(n_clicks, sidebar_style, main_content_style):
+    if n_clicks and sidebar_style["transform"] == "translateX(-100%)":
+        # Show sidebar and add margin to main content
+        sidebar_style["transform"] = "translateX(0)"
+        main_content_style["margin-left"] = "200px"  # Adjust for sidebar width
+    else:
+        # Hide sidebar and reset main content margin
+        sidebar_style["transform"] = "translateX(-100%)"
+        main_content_style["margin-left"] = "0px"
+    return sidebar_style, main_content_style
 
 
 
@@ -668,49 +760,148 @@ def display_input_method(selected_method):
 # generate report
 @app.callback(
     Output('download-report', 'data'),
-    [Input('report-button', 'n_clicks')],
-    [State('report-format', 'value')]
+    Input('report-button', 'n_clicks')
 )
-def generate_report(n_clicks, report_format):
+def generate_report(n_clicks):
     if n_clicks:
         try:
-            # Generate a blank HTML report
-            if report_format == 'html':
-                report_html = """
-                <html>
-                    <head><title>Blank Report</title></head>
-                    <body><h1>Blank Report</h1><p>This is a placeholder for the report.</p></body>
+            # Static title for the report
+            report_title = "ESG Performance Analysis Report"
+            logo_url = '/assets/teamlogo.png'
+
+            # Title section with logo for HTML/PDF
+            logo_section = f"<div style='text-align:center;'><img src='{logo_url}' style='width:500px;'></div>"
+            title_section = f"{logo_section}<h1 style='text-align:center;'>ESG Performance Analysis Report</h1>"
+
+            # Content for each report section
+            executive_summary = """
+            <h2>Executive Summary</h2>
+            <p>This report provides a comprehensive analysis of greenhouse gas (GHG) emissions data, resource usage, and benchmarking based on the dataset uploaded to our platform. Key findings highlight patterns in emissions intensity over time, the breakdown of emissions by scope, and comparative benchmarking based on recognized certification levels.</p>
+            """
+
+            introduction = """
+            <h2>Introduction to ESG Reporting Analysis</h2>
+            <p><strong>Purpose of the Analysis</strong></p>
+            <p>ESG reporting is increasingly critical for understanding the environmental impact and sustainability performance of organizations. This report leverages our platform’s analytics to provide a data-driven view of the submitted dataset, focusing on GHG emissions and resource management metrics.</p>
+            
+            <h2>Methodology</h2>
+            <p><strong>Data Processing and Visualization</strong></p>
+            <p>The uploaded dataset underwent several stages of processing, including data quality checks, normalization, and segmentation by relevant categories (e.g., certification levels, emissions scopes). For commuting data in Scope 3, we have regional factors to adjust your value.</p>
+            
+            <p><strong>Automated Analysis and Model Selection</strong></p>
+            <p>This analysis was conducted through our platform’s advanced analytics, which includes an automated model selection process to identify the best statistical or machine learning model for your data type. By evaluating multiple models based on their fit and predictive accuracy, the platform ensures that each analysis component—such as trend detection, emissions distribution, and resource usage breakdown—is optimized for accuracy and relevance.</p>
+            """
+
+            scope_of_reporting = """
+            <h2>Scope of Reporting</h2>
+            <p><strong>Reporting Period</strong></p>
+            <p>The analysis covers data entries from January 1, 2023, to December 31, 2023. All findings are based on the data within this timeframe, as provided in the uploaded dataset.</p>
+            
+            <p><strong>Data Boundaries</strong></p>
+            <p>The dataset includes various entities, each contributing to the total emissions and resource metrics. This report reflects the aggregated and segmented data as processed by our platform, without further boundary restrictions or exclusions.</p>
+            """
+
+            performance_data_intro = """
+            <h2>Performance Data</h2>
+            <p>This section provides detailed insights derived from the GHG emissions and resource usage data.</p>
+            """
+
+            benchmark_intro = """
+            <h2>Benchmark</h2>
+            <p>The benchmarking section compares the entities based on certification or award levels to highlight how the dataset aligns with established standards.</p>
+            """
+
+            future_outlook = """
+            <h2>Future Insights and Recommendations</h2>
+            <p>Based on the analysis conducted through our platform, the following insights and recommendations can guide future actions:</p>
+            <ul>
+                <li><strong>Focus on High Emission Scopes</strong>: Entities or operations with high Scope 1, Scope 2, or Scope 3 emissions should be prioritized for reduction strategies, as identified in the scope distribution analysis.</li>
+                <li><strong>Enhance Resource Efficiency</strong>: The water and waste distribution insights suggest potential areas for improving resource efficiency. Reducing waste generation and optimizing water usage can directly contribute to better sustainability outcomes.</li>
+                <li><strong>Targeted Certification Improvement</strong>: For entities with lower certification levels, consider strategies to meet higher certification standards. This can enhance overall ESG performance and align with sustainability benchmarks.</li>
+                <li><strong>Emissions Intensity Management</strong>: The observed GHG intensity trend over time highlights areas where emissions management may be improved. Continuous monitoring and mitigation efforts during high-intensity periods could further reduce the overall environmental footprint.</li>
+            </ul>
+            """
+
+            # Generate and aggregate plots
+            # Awards Distribution plot
+            benchmark_data = df.groupby('Award').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
+            fig_awards = go.Figure(data=[go.Scatter(
+                x=[0, 1, 2, 3], y=[2, 2, 2, 2], mode='markers+text',
+                marker=dict(size=benchmark_data["unique_building_count"], opacity=0.6, color="#365E32"),
+                text=benchmark_data["Award"],
+                textposition="top center",
+                hovertext=benchmark_data["unique_building_count"]
+            )])
+            fig_awards.update_layout(title="Awards Distribution", showlegend=False,
+                                     xaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False),
+                                     yaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False))
+            awards_plot_html = fig_awards.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # Performance Data plot (Aggregated GHG Intensity over time)
+            year_trend_df = df.groupby('YearDate').agg({'GHG_Intensity': 'mean'}).reset_index()
+            fig_performance = px.line(
+                year_trend_df,
+                x='YearDate',
+                y='GHG_Intensity',
+                title="Average Greenhouse Gas Emissions Intensity Over Time",
+                labels={"GHG_Intensity": "Average GHG Intensity"}
+            )
+            fig_performance.update_traces(line=dict(color="#365E32"))
+            performance_plot_html = fig_performance.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # GHG Intensity Violin Plot (under Benchmark)
+            fig_violin = px.violin(df, x="GHG_Intensity", box=True, points='all', title="GHG Intensity Violin Plot",
+                                   labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
+            fig_violin.update_traces(marker=dict(color="green"))
+            violin_plot_html = fig_violin.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # Water and Waste Distribution Plot (under Performance Data)
+            pie_data_ww = pd.melt(df[['Building Name', 'Water', 'Waste']], id_vars='Building Name', var_name='key', value_name='value')
+            pie_data_ww = pie_data_ww.groupby('key').agg({"value": 'sum'}).reset_index()
+            fig_water_waste = px.pie(pie_data_ww, names='key', values='value', title="Water and Waste Distribution")
+            fig_water_waste.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+            water_waste_plot_html = fig_water_waste.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # Scope Emissions Distribution Plot (under Performance Data)
+            pie_data_scope = pd.melt(df[['Building Name', 'Scope1', 'Scope2', 'Scope3']], id_vars='Building Name', var_name='key', value_name='value')
+            pie_data_scope = pie_data_scope.groupby('key').agg({"value": 'sum'}).reset_index()
+            fig_scope_emissions = px.pie(pie_data_scope, names='key', values='value', title="Scope Emissions Distribution")
+            fig_scope_emissions.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+            scope_emissions_plot_html = fig_scope_emissions.to_html(full_html=False, include_plotlyjs='cdn')
+
+            # Generate report based on the selected format
+            report_html = f"""
+            <html>
+                    <body>
+                    <!-- Logo at the top of the report -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="/assets/teamlogo.png" alt="Company Logo" style="width: 500px; height: auto;">
+                    </div>
+                        {title_section}
+                        {executive_summary}
+                        {introduction}
+                        {scope_of_reporting}
+                        {performance_data_intro}
+                        {performance_plot_html}
+                        {water_waste_plot_html}
+                        {scope_emissions_plot_html}
+                        {benchmark_intro}
+                        {awards_plot_html}
+                        {violin_plot_html}
+                        {future_outlook}
+                    </body>
                 </html>
                 """
-                with open('report.html', 'w') as f:
-                    f.write(report_html)
-                return dcc.send_file('report.html')
-
-            # Generate a blank PDF report
-            elif report_format == 'pdf':
-                report_html = """
-                <html>
-                    <head><title>Blank PDF Report</title></head>
-                    <body><h1>Blank PDF Report</h1><p>This is a placeholder for the PDF report.</p></body>
-                </html>
-                """
-                pdfkit.from_string(report_html, 'report.pdf')
-                return dcc.send_file('report.pdf')
-
-            # Generate a blank Word report
-            elif report_format == 'docx':
-                doc = docx.Document()
-                doc.add_heading('Blank Word Report', 0)
-                doc.add_paragraph("This is a placeholder for the Word report.")
-                doc.save('report.docx')
-                return dcc.send_file('report.docx')
-
+            with open('report.html', 'w') as f:
+                f.write(report_html)
+            return dcc.send_file('report.html')
         except Exception as e:
             print(f"Error during report generation: {e}")
             return None
-
+            
 
 
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
+

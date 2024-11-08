@@ -21,23 +21,51 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY], suppress_call
 server = app.server
 
 # Sidebar layout
-
 sidebar = html.Div(
     [
-        html.H2("Sidebar", style={"color": "white"}),
-        html.Hr(),
-        html.P("Navigation", style={"color": "white"}),
-        dcc.Link("Data Input", href="/data-input", style={"display": "block", "color": "white", "padding": "10px 0"}),
-        dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/data-quality", style={"display": "block", "color": "white", "padding": "10px 0"}),
-        dcc.Link("Model Results and Benchmarking", href="/model-results", style={"display": "block", "color": "white", "padding": "10px 0"}),
-        dcc.Link("Generate Report and Chat Assistance", href="/generate-report", style={"display": "block", "color": "white", "padding": "10px 0"}),
+        dcc.Link("Data Input", href="/page-1", style={
+            "display": "block",
+            "color": "white",
+            "padding": "12px 20px",
+            "textDecoration": "none",  # No underline
+            "font-size": "18px",
+            "font-weight": "bold",
+            "border-radius": "5px",
+        }),
+        dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/page-2", style={
+            "display": "block",
+            "color": "white",
+            "padding": "12px 20px",
+            "textDecoration": "none",
+            "font-size": "18px",
+            "font-weight": "bold",
+            "border-radius": "5px",
+        }),
+        dcc.Link("Model Results and Benchmarking", href="/page-3", style={
+            "display": "block",
+            "color": "white",
+            "padding": "12px 20px",
+            "textDecoration": "none",
+            "font-size": "18px",
+            "font-weight": "bold",
+            "border-radius": "5px",
+        }),
+        dcc.Link("Generate Report and Chat Assistance", href="/page-4", style={
+            "display": "block",
+            "color": "white",
+            "padding": "12px 20px",
+            "textDecoration": "none",
+            "font-size": "18px",
+            "font-weight": "bold",
+            "border-radius": "5px",
+        }),
     ],
     id="sidebar",
     style={
-        "padding": "10px",
+        "padding": "15px",
         "background-color": "#333",
         "color": "white",
-        "width": "200px",
+        "width": "220px",
         "height": "100vh",
         "position": "fixed",
         "left": "0",
@@ -45,13 +73,18 @@ sidebar = html.Div(
         "overflow": "auto",
         "transform": "translateX(-100%)",  # Initially hidden
         "transition": "transform 0.3s ease",  # Smooth transition
-    },
+        "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)",  # Adds shadow for depth
+        "border-radius": "0 8px 8px 0",  # Rounds right-side corners
+    }
 )
+
+
+
 
 # Button to toggle the sidebar
 toggle_button = html.Button("☰", id="toggle-button", style={
-    "position": "fixed",
-    "top": "20px",
+    "position": "absolute",
+    "top": "40px",
     "left": "20px",
     "z-index": "1",
     "padding": "10px",
@@ -59,33 +92,55 @@ toggle_button = html.Button("☰", id="toggle-button", style={
     "background-color": "#2C7A7B",
     "color": "white",
     "border": "none",
+    "border-radius": "8px",  # Rounded corners
+    "box-shadow": "0 4px 8px rgba(0, 0, 0, 0.2)",  # Subtle shadow
     "cursor": "pointer",
+    "transition": "all 0.3s ease",  # Smooth hover transition
 })
 
-# Main layout with sidebar integrated
-app.layout = html.Div(
-    [
+# Adding hover effect through inline CSS for a slightly darker background on hover
+toggle_button_style_hover = {
+    "background-color": "#285e5e",
+}
+
+
+
+# Main layout
+app.layout = html.Div([
         toggle_button,
-        sidebar,  # Add sidebar
+        sidebar,
         html.Div(
             id="main-content",
             children=[
                 html.Div(
-                    dbc.NavbarSimple(
-                        brand="GHG Emissions Calculator",
-                        brand_href="/",
+                    dbc.Navbar(
+                        [
+                            dbc.NavbarBrand(
+                                "GHG Emissions Calculator",
+                                className="mx-auto",  # Center the title
+                                style={
+                                    "fontSize": "46px",
+                                    "fontWeight": "bold",
+                                    "color": "white",
+                                    "padding": "10px",
+                                },
+                            ),
+                        ],
                         color="success",
                         dark=True,
                         style={
-                            "fontSize": "48px",
-                            "fontWeight": "bold",
                             "textAlign": "center",
                             "justifyContent": "center",
-                            "padding": "30px",
-                            "margin-bottom": "30px",
+                            "padding": "20px",
+                            "borderRadius": "8px",
+                            "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.2)",
                         },
                     ),
-                    style={"textAlign": "center"},
+                    style={
+                        "textAlign": "center",
+                        "marginTop": "20px",
+                        "marginBottom": "30px",
+                    },
                 ),
                 dcc.Location(id="url", refresh=False),
                 html.Div(id="page-content"),
@@ -96,16 +151,22 @@ app.layout = html.Div(
 )
 
 
-# File upload section layout with logo image
+# File upload section layout
 file_upload_layout = html.Div([
-    html.Img(
-        src='./assets/teamlogo.png',
+    html.Div(
+        html.Img(
+            src='./assets/teamlogo.png',
+            style={
+                'width': '220px',  # Adjust width as necessary
+                'height': 'auto',
+            }
+        ),
+        id="logo-wrapper",  # Add an ID to the wrapper for callback targeting
         style={
             'position': 'absolute',
-            'top': '10px',
-            'right': '10px',
-            'width': '500px',  
-            'height': 'auto'
+            'top': '55px',
+            'right': '40px',  # Increased 'right' value to move it further right
+            'transition': 'right 0.3s ease'  # Add transition for smooth effect
         }
     ),
     dbc.Card([
@@ -136,7 +197,6 @@ file_upload_layout = html.Div([
         ])
     ])
 ])
-
 
 
 @app.callback(
@@ -186,14 +246,20 @@ singapore_regions = [
 ]
 
 manual_input_layout = dbc.Container([
-    html.Img(
-        src='./assets/teamlogo.png',
+    html.Div(
+        html.Img(
+            src='./assets/teamlogo.png',
+            style={
+                'width': '220px',  # Adjust width as necessary
+                'height': 'auto',
+            }
+        ),
+        id="manual-logo-wrapper",
         style={
             'position': 'absolute',
-            'top': '10px',
-            'right': '10px',
-            'width': '500px',  
-            'height': 'auto'   
+            'top': '55px',
+            'right': '40px',
+            'transition': 'right 0.3s ease'  # Add transition for smooth effect
         }
     ),
     dbc.Card([
@@ -322,19 +388,19 @@ manual_input_layout = dbc.Container([
             ], className="mb-4"),
             dbc.Row([
                 dbc.Col([
-                    html.H5("Subway/MRT Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    html.H5("Subway/MRT Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
                     dcc.Input(id='subway-commute-input', type='number', placeholder="Enter distance (km)",
                               style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
                 ], width=6),
                 dbc.Col([
-                    html.H5("Bus Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    html.H5("Bus Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
                     dcc.Input(id='bus-commute-input', type='number', placeholder="Enter distance (km)",
                               style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
                 ], width=6),
             ], className="mb-4"),
             dbc.Row([
                 dbc.Col([
-                    html.H5("Taxi/Private Car Commute (km for 8 people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                    html.H5("Taxi/Private Car Commute (km * people)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
                     dcc.Input(id='taxi-commute-input', type='number', placeholder="Enter distance (km)",
                               style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
                 ], width=6),
@@ -370,7 +436,7 @@ manual_input_layout = dbc.Container([
                               style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
                 ], width=6),
             ], className="mb-4"),
-            dbc.Row([
+             dbc.Row([
                 dbc.Col([
                     dbc.Button("Proceed to Data Quality Check", id="next-button", color="success", className="mt-4", 
                                style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='page-2')
@@ -382,7 +448,8 @@ manual_input_layout = dbc.Container([
         'boxShadow': '0 4px 12px rgba(0, 0, 0, 0.1)',
         'padding': '20px'  
     })
-], fluid=True) 
+], fluid=True)
+
 
 
 
@@ -580,7 +647,6 @@ page_4_layout = dbc.Container([
                 options=[
                     {'label': 'HTML', 'value': 'html'},
                     {'label': 'PDF', 'value': 'pdf'},
-                    {'label': 'Word (DOCX)', 'value': 'docx'}
                 ],
                 placeholder="Select Report Format",
                 style={'width': '100%', 'margin-bottom': '20px'}
@@ -614,23 +680,7 @@ page_4_layout = dbc.Container([
     ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
 ])
 
-    
-# Sample Q&A pairs for chatbot assistance
-qa_pairs = {
-    "ghg emissions intensity": "The GHG emissions intensity is calculated by dividing the total greenhouse gas emissions by the building's gross floor area. This provides an intensity metric (usually in kg CO₂ per square meter) that helps to standardize emissions across buildings of different sizes.",
-    "scope 1 emissions": "Scope 1 emissions are direct emissions from owned or controlled sources, such as fuel combustion on-site.",
-    "scope 2 emissions": "Scope 2 emissions are indirect emissions from the generation of purchased electricity used by the building.",
-    "scope 3 emissions": "Scope 3 emissions are other indirect emissions, like employee commutes or business travel, which are part of the value chain but not directly controlled by the building.",
-    "high scope 2 emissions": "High Scope 2 emissions often indicate significant electricity usage, which can come from lighting, HVAC, and other electrical equipment. Reducing electricity consumption or sourcing renewable energy could help reduce Scope 2 emissions.",
-    "reduce emissions from business travel": "To reduce emissions from business travel, consider virtual meetings instead of in-person travel, choosing direct flights over multiple connections, or using airlines with carbon offset programs.",
-    "benchmark emissions intensity": "The report includes a benchmarking chart that compares your building's emissions intensity to industry averages. This can provide insight into how efficiently your building operates relative to similar buildings.",
-    "reduce water and waste emissions": "To reduce water-related emissions, consider installing water-efficient fixtures, using rainwater for irrigation, and fixing leaks promptly. For waste-related emissions, implementing recycling programs, reducing single-use plastics, and managing food waste can all contribute to emissions reductions.",
-    "employee commute data": "Employee commute data is part of Scope 3 emissions. It reflects the environmental impact of employees traveling to and from the workplace. Encouraging sustainable commuting options, like public transit, carpooling, or cycling, can help reduce this component of the building’s carbon footprint.",
-    "missing data": "The data quality check will indicate if there are missing values in your dataset. Missing data can impact the accuracy of the report, especially in Scope 3 categories. We recommend ensuring data completeness for a more reliable calculation.",
-    "procurement emissions": "Emissions from procurement are based on estimated emissions for the transportation and production of goods purchased for the building. For accurate calculations, include information on the type of freight and the distance traveled.",
-    "ghg emissions trend line": "The trend line shows your building's GHG emissions intensity over time. A downward trend indicates that emissions per unit of area are decreasing, which is positive.",
-    "actions to reduce emissions": "If emissions are higher than expected, consider energy-saving initiatives, reducing business travel, or using greener procurement options. Conducting an energy audit and promoting green commuting options are also good steps."
-}
+
 
 # Function to get chatbot response
 def get_chatbot_response(user_input):
@@ -677,20 +727,51 @@ def update_chatbot_response(n_clicks, user_input):
 
 # Callback to toggle the sidebar and adjust main content margin
 @app.callback(
-    [Output("sidebar", "style"), Output("main-content", "style")],
+    [Output("sidebar", "style"), Output("main-content", "style"), Output("toggle-button", "style")],
     [Input("toggle-button", "n_clicks")],
-    [State("sidebar", "style"), State("main-content", "style")]
+    [State("sidebar", "style"), State("main-content", "style"), State("toggle-button", "style")]
 )
-def toggle_sidebar(n_clicks, sidebar_style, main_content_style):
+def toggle_sidebar(n_clicks, sidebar_style, main_content_style, toggle_button_style):
     if n_clicks and sidebar_style["transform"] == "translateX(-100%)":
-        # Show sidebar and add margin to main content
+        # Show sidebar and adjust toggle button position to stay to the right of the sidebar
         sidebar_style["transform"] = "translateX(0)"
         main_content_style["margin-left"] = "200px"  # Adjust for sidebar width
+        toggle_button_style["left"] = "220px"  # Place button to the right of the sidebar
     else:
-        # Hide sidebar and reset main content margin
+        # Hide sidebar and reset toggle button position
         sidebar_style["transform"] = "translateX(-100%)"
         main_content_style["margin-left"] = "0px"
-    return sidebar_style, main_content_style
+        toggle_button_style["left"] = "20px"  # Reset button to the original position
+    return sidebar_style, main_content_style, toggle_button_style
+
+
+@app.callback(
+    Output("logo-wrapper", "style"),
+    [Input("toggle-button", "n_clicks")],
+    [State("logo-wrapper", "style")]
+)
+def adjust_logo_position(n_clicks, current_style):
+    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
+        # Shift logo further to the right
+        current_style["right"] = "0px"  # Adjust to match sidebar width
+    else:
+        # Reset logo position when sidebar is hidden
+        current_style["right"] = "40px"
+    return current_style
+
+@app.callback(
+    Output("manual-logo-wrapper", "style"),
+    [Input("toggle-button", "n_clicks")],
+    [State("manual-logo-wrapper", "style")]
+)
+def adjust_logo_position(n_clicks, current_style):
+    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
+        # Shift logo further to the right
+        current_style["right"] = "0px"  # Adjust to match sidebar width
+    else:
+        # Reset logo position when sidebar is hidden
+        current_style["right"] = "40px"
+    return current_style
 
 
 

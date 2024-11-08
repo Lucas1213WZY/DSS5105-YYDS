@@ -132,7 +132,7 @@ class InsideBuilding:
         self.a = a      # a:percentage of office area 
         self.b = b      # b:percentage of retail area
         self.c = c      # c:percentage of parking area
-        self.x = x      # x:ratio of unit emission of retail to office in a building
+        self.x = x      # x:ratio of unit emission of office to office in a building
         self.y = y      # y:ratio of unit emission of retail to office in a building
         self.z = z      # z:ratio of unit emission of parking facilities to office in a building
 

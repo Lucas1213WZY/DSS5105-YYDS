@@ -101,6 +101,15 @@ shap_values = explainer(X_test)
 
 # Summary plot for feature importance
 shap.summary_plot(shap_values, X_test, feature_names=features)
+train_r2 = r2_score(y_train, y_pred_train_gbdt)
+test_r2 = r2_score(y_test, y_pred_test_gbdt)
+test_mse = mean_squared_error(y_test, y_pred_test_gbdt)
+test_mae = mean_absolute_error(y_test, y_pred_test_gbdt)
+
+print(f'Train R²: {train_r2}')
+print(f'Test R²: {test_r2}')
+print(f'Test MSE: {test_mse}')
+print(f'Test MAE: {test_mae}')
 
 # SHAP dependence plot for a specific feature
 shap_values = explainer.shap_values(X_test)

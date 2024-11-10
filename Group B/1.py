@@ -14,6 +14,7 @@ import openai
 from dash import callback_context
 import re
 from dash.exceptions import PreventUpdate
+from datetime import datetime
 
 # Initialize the OpenAI client
 openai.api_key = "sk-svcacct-yirqs5Y1sVriNR6qGBs7ZSSRhXZd-uvMQdebTequv5z2oAy6rjhnnSQ_B6740T3BlbkFJyk98lfvPOiui5GB-FMMIMLWA8UY4bkO30YxytnTW8X505TFJmXIgswzK0sFAA"
@@ -26,51 +27,76 @@ server = app.server
 # Sidebar layout
 sidebar = html.Div(
     [
-        dcc.Link("Data Input", href="/page-1", style={
-            "display": "block",
-            "color": "white",
-            "padding": "12px 20px",
-            "textDecoration": "none",  # No underline
-            "font-size": "18px",
-            "font-weight": "bold",
-            "border-radius": "5px",
-        }),
-        dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/page-2", style={
-            "display": "block",
-            "color": "white",
-            "padding": "12px 20px",
-            "textDecoration": "none",
-            "font-size": "18px",
-            "font-weight": "bold",
-            "border-radius": "5px",
-        }),
-        dcc.Link("Model Results and Benchmarking", href="/page-3", style={
-            "display": "block",
-            "color": "white",
-            "padding": "12px 20px",
-            "textDecoration": "none",
-            "font-size": "18px",
-            "font-weight": "bold",
-            "border-radius": "5px",
-        }),
-        dcc.Link("Report and Chatbox", href="/page-4", style={
-            "display": "block",
-            "color": "white",
-            "padding": "12px 20px",
-            "textDecoration": "none",
-            "font-size": "18px",
-            "font-weight": "bold",
-            "border-radius": "5px",
-        }),
-        dcc.Link("Feedback", href="/page-5", style={
-            "display": "block",
-            "color": "white",
-            "padding": "12px 20px",
-            "textDecoration": "none",
-            "font-size": "18px",
-            "font-weight": "bold",
-            "border-radius": "5px",
-        }),
+        # Main navigation links
+        html.Div([
+            dcc.Link("Data Input", href="/page-1", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+            dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/page-2", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+            dcc.Link("Model Results and Benchmarking", href="/page-3", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+            dcc.Link("Report and Chatbox", href="/page-4", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+            dcc.Link("Feedback", href="/page-5", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+        ], style={"marginBottom": "auto"}),  # Ensures other links are pushed to the bottom
+
+        # Additional links at the bottom
+        html.Div([
+            dcc.Link("Q&A", href="/qa", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+            dcc.Link("About Us", href="/about", style={
+                "display": "block",
+                "color": "white",
+                "padding": "12px 20px",
+                "textDecoration": "none",
+                "font-size": "18px",
+                "font-weight": "bold",
+                "border-radius": "5px",
+            }),
+        ], style={"paddingTop": "20px"}),  # Add spacing above the bottom links
     ],
     id="sidebar",
     style={
@@ -83,10 +109,12 @@ sidebar = html.Div(
         "left": "0",
         "top": "0",
         "overflow": "auto",
-        "transform": "translateX(-100%)",  # Initially hidden
-        "transition": "transform 0.3s ease",  # Smooth transition
-        "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)",  # Adds shadow for depth
-        "border-radius": "0 8px 8px 0",  # Rounds right-side corners
+        "display": "flex",
+        "flexDirection": "column",  # Enable column layout for vertical alignment
+        "transform": "translateX(-100%)",
+        "transition": "transform 0.3s ease",
+        "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)",
+        "border-radius": "0 8px 8px 0",
     }
 )
 
@@ -429,7 +457,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='year-input', type='number', placeholder="Enter Year",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='year-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'})  # Error message div
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the reference year for this data (e.g., 2022 for data collected in 2022).",
@@ -446,7 +475,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='size-input', type='number', placeholder="Enter Building Size",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='size-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the size of the building in sqft.",
@@ -461,7 +491,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='employee-input', type='number', placeholder="Enter Number of Employees",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='employees-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the number of employees that work in the building.",
@@ -486,7 +517,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='energy-input', type='number', placeholder="Enter Energy Consumption",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='energy-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total energy consumed by the building, measured in kilowatt-hours (kWh).",
@@ -501,7 +533,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='water-input', type='number', placeholder="Enter Water Consumption",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='water-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total water consumed by the building, measured in cubic meters (m³).",
@@ -518,7 +551,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='waste-input', type='number', placeholder="Enter Waste Generated",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='waste-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total waste generated consumed the building, measuredin tons (t).",
@@ -543,7 +577,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='subway-commute-input', type='number', placeholder="Enter distance (km)",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='subway-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total subway/MRT commute distance in km multiplied by the number of employees.",
@@ -558,7 +593,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='bus-commute-input', type='number', placeholder="Enter distance (km)",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='bus-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total bus commute distance in km multiplied by the number of employees.",
@@ -575,7 +611,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='taxi-commute-input', type='number', placeholder="Enter distance (km)",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='taxi-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total taxi/private car commute distance in km multiplied by the number of employees.",
@@ -592,7 +629,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='business-travel-flight-input', type='number', placeholder="Enter amount in $SDG",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='flight-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the annual amount spent on business flights in $SDG.",
@@ -607,7 +645,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='business-travel-hotel-input', type='number', placeholder="Enter amount in $SDG",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='hotel-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the annual amount spent on business hotel stays in $SDG.",
@@ -624,7 +663,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='business-procurement-air-freight-input', type='number', placeholder="Enter weight/volume",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='air-freight-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total weight/volume transported in ton-kilometers (t * km) for air freight procurement.",
@@ -639,7 +679,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='business-procurement-diesel-truck-input', type='number', placeholder="Enter weight/volume",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='diesel-truck-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total weight/volume transported in ton-kilometers (t * km) for diesel truck freight procurement.",
@@ -656,7 +697,8 @@ manual_input_layout = dbc.Container([
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
                             dcc.Input(id='business-procurement-electric-truck-input', type='number', placeholder="Enter weight/volume",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'})
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='electric-truck-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
                         ], width=6),
                         dbc.Tooltip(
                             "Enter the total weight/volume transported in ton-kilometers (t * km) for electric truck freight procurement.",
@@ -748,9 +790,8 @@ def validate_form(n_clicks, *input_values):
 
 
 
-
-
-
+# Callback for input error data
+# 1. Zip Code Validation (6-digit Singapore postal code)
 @app.callback(
     Output('zip-error', 'children'),
     Input('zip-input', 'value')
@@ -764,6 +805,98 @@ def validate_zip(zip_code):
     return ""  # No error if the format is correct
 
 
+# 2. Year Validation (4-digit year, not exceeding current year + 1)
+@app.callback(
+    Output('year-error', 'children'),
+    Input('year-input', 'value')
+)
+def validate_year(year):
+    if year is None:
+        return ""  # No error if no input
+    
+    current_year = datetime.now().year
+    if not re.match(r'^\d{4}$', str(year)):  # Check if year is in 4-digit format
+        return "Invalid format. Please enter a valid year."
+    elif year > current_year + 1:
+        return f"Invalid year. Please enter a year no later than {current_year + 1}."
+    
+    return ""  # No error if the format and range are correct
+
+
+# 3. Size Validation (100–1,000,000 sqft)
+@app.callback(
+    Output('size-error', 'children'),
+    Input('size-input', 'value')
+)
+def validate_size(size):
+    if size is None:
+        return ""  # No error if no input
+    if size < 100 or size > 2000000:
+        return "Invalid size. Please enter a realistic building size in square feet (100–2,000,000)."
+    return ""  # No error if within the range
+
+# 4. Number of Employees Validation (1–50,000)
+@app.callback(
+    Output('employees-error', 'children'),
+    Input('employee-input', 'value')
+)
+def validate_employees(employees):
+    if employees is None:
+        return ""  # No error if no input
+    if employees < 1 or employees > 50000:
+        return "Invalid number. Please enter a realistic number of employees (1–50,000)."
+    return ""  # No error if within the range
+
+# 5. Energy Consumption Validation (1–100,000,000 kWh)
+@app.callback(
+    Output('energy-error', 'children'),
+    Input('energy-input', 'value')
+)
+def validate_energy(energy):
+    if energy is None:
+        return ""  # No error if no input
+    if energy < 1 or energy > 100000000:
+        return "Invalid value. Please enter a realistic energy consumption (1–100,000,000 kWh)."
+    return ""  # No error if within the range
+
+# 6. Water Consumption Validation (1–1,000,000 m³)
+@app.callback(
+    Output('water-error', 'children'),
+    Input('water-input', 'value')
+)
+def validate_water(water):
+    if water is None:
+        return ""  # No error if no input
+    if water < 1 or water > 1000000:
+        return "Invalid value. Please enter a realistic water consumption (1–1,000,000 m³)."
+    return ""  # No error if within the range
+
+# 7. Waste Generated Validation (0.1–10,000 tons)
+@app.callback(
+    Output('waste-error', 'children'),
+    Input('waste-input', 'value')
+)
+def validate_waste(waste):
+    if waste is None:
+        return ""  # No error if no input
+    if waste < 0.1 or waste > 1000000:
+        return "Invalid value. Please enter a realistic waste amount (0.1–1,000,000 tons)."
+    return ""  # No error if within the range
+
+# 8. Commute Distances Validation (1–10,000 km * people)
+def commute_validation_callback(input_id, output_id, field_name):
+    @app.callback(
+        Output(output_id, 'children'),
+        Input(input_id, 'value')
+    )
+    def validate_commute(distance):
+        if distance is None:
+            return ""  # No error if no input
+        if distance < 1 or distance > 15000:
+            return f"Invalid value for {field_name} commute. Enter a realistic total distance (1–15,000 km * people)."
+        return ""  # No error if within the range
+    return validate_commute
+
 # Callback to switch between file upload and manual input
 @app.callback(
     Output('input-section', 'children'),
@@ -774,6 +907,47 @@ def display_input_method(selected_method):
         return file_upload_layout
     elif selected_method == 'manual':
         return manual_input_layout
+
+commute_validation_callback('subway-commute-input', 'subway-error', 'Subway/MRT')
+commute_validation_callback('bus-commute-input', 'bus-error', 'Bus')
+commute_validation_callback('taxi-commute-input', 'taxi-error', 'Taxi/Private Car')
+
+# 9. Business Travel Expenses Validation (0–1,000,000 SDG)
+def travel_expense_validation_callback(input_id, output_id, field_name):
+    @app.callback(
+        Output(output_id, 'children'),
+        Input(input_id, 'value')
+    )
+    def validate_travel_expense(expense):
+        if expense is None:
+            return ""  # No error if no input
+        if expense < 0 or expense > 100000000:
+            return f"Invalid {field_name} expense. Enter a realistic annual expense (0–100,000,000 SDG)."
+        return ""  # No error if within the range
+    return validate_travel_expense
+
+travel_expense_validation_callback('business-travel-flight-input', 'flight-error', 'Flight')
+travel_expense_validation_callback('business-travel-hotel-input', 'hotel-error', 'Hotel')
+
+# 10. Freight Transport Distance Validation (1–1,000,000 t * km)
+def freight_validation_callback(input_id, output_id, field_name):
+    @app.callback(
+        Output(output_id, 'children'),
+        Input(input_id, 'value')
+    )
+    def validate_freight(distance):
+        if distance is None:
+            return ""  # No error if no input
+        if distance < 1 or distance > 1000000:
+            return f"Invalid value for {field_name}. Enter a realistic freight transport distance (1–1,000,000 t * km)."
+        return ""  # No error if within the range
+    return validate_freight
+
+freight_validation_callback('business-procurement-air-freight-input', 'air-freight-error', 'Air Freight')
+freight_validation_callback('business-procurement-diesel-truck-input', 'diesel-truck-error', 'Diesel Truck Freight')
+freight_validation_callback('business-procurement-electric-truck-input', 'electric-truck-error', 'Electric Truck Freight')
+
+
 
 
 # Define layout for Page 2 - Data Quality Check and EDA
@@ -1443,6 +1617,187 @@ def navigate(n_clicks_back, n_clicks_home):
     return dash.no_update
 
 
+# Sample Q&A content
+qa_content = [
+    {
+        "question": "What is this dash for?",
+        "answer": "This app helps with data input and validation for sustainability reporting. It assists users in inputting environmental data, performing data quality checks, and generating reports."
+    },
+    {
+        "question": "What can use this dash?",
+        "answer": "aThis app is intended for users responsible for reporting on environmental metrics. No special training is needed, but a basic understanding of emissions and sustainability reporting is helpful."
+    },
+    {
+        "question": "Is there a file size limit for uploads?",
+        "answer": "Yes, files should not exceed 10 MB. If your file is too large, consider splitting it or removing unnecessary data."
+    },
+    {
+        "question": "How do I upload a file?",
+        "answer": "To upload a file, go to the 'Data Input' section and drag-and-drop your file or click 'Browse' to select it. Make sure your file is in .csv or .xlsx format."
+    },
+    {
+        "question": "What should I do if I see an error message?",
+        "answer": "Error messages indicate that some of your data does not meet the expected format or range. Follow the instructions in the error message to correct the data and try again."
+    },
+    {
+        "question": "What do the metrics in the report mean?",
+        "answer": "The metrics provide insights into emissions, energy consumption, water usage, and more. You can find a detailed explanation of each metric in the report’s appendix section."
+    },
+    {
+        "question": "Why is the page not loading correctly or page is not responding?",
+        "answer": "Please ensure you are using an updated browser. If the problem persists, try clearing your cache or disabling browser extensions. Sometimes it takes time for the page to load, if the page is not responding, try refreshing the page."
+    },
+    {
+        "question": "Who can I contact for support?",
+        "answer": "For support, please contact our team at e1352233@u.nus.edu We’re here to help with any issues you may have."
+    },
+]
+
+# Q&A layout with collapsible questions
+page_qa_layout = dbc.Container([
+    # Logo
+    html.Div(
+        html.Img(
+            src='./assets/teamlogo.png',
+            style={'width': '220px', 'height': 'auto'}
+        ),
+        id="page-5-logo-wrapper",
+        style={
+            'position': 'absolute',
+            'top': '55px',
+            'right': '40px',
+            'transition': 'right 0.3s ease'
+        }
+    ),
+    
+        html.Div([
+        html.H3("Frequently Asked Questions", style={
+            'fontWeight': 'bold',
+            'fontSize': '28px',
+            'textAlign': 'center',
+            'marginBottom': '30px',
+            'color': '#333',
+        }),
+    ]),
+
+# FAQ Accordion Section
+    html.Div([
+        dbc.Accordion(
+            [
+                dbc.AccordionItem(
+                    title=qa["question"],
+                    children=html.P(qa["answer"], style={'padding': '10px', 'lineHeight': '1.6'}),
+                    style={
+                        'marginBottom': '10px',
+                        'borderRadius': '8px',
+                        'border': '1px solid #ddd',
+                        'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    }
+                )
+                for qa in qa_content
+            ],
+            start_collapsed=True,
+            style={
+                'backgroundColor': '#ffffff',
+                'borderRadius': '8px',
+                'padding': '10px'
+            }
+        ),
+        
+        # Contact information at the bottom
+        html.P(
+            "For more questions, please contact us at e1352233@u.nus.edu.",
+            style={
+                'marginTop': '20px',
+                'fontSize': '16px',
+                'color': '#555',
+                'textAlign': 'center'
+            }
+        )
+    ], style={
+        'padding': '20px',
+        'backgroundColor': '#f9f9f9',
+        'borderRadius': '8px',
+        'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)'
+    })
+], fluid=True, style={'padding': '40px 0', 'maxWidth': '800px', 'margin': 'auto'})
+
+
+
+
+# About Us layout with core philosophy and GitHub link
+page_about_layout = dbc.Container([
+    # Header with Logo and Title
+    html.Div(
+        html.Img(
+            src='./assets/teamlogo.png',
+            style={'width': '220px', 'height': 'auto'}
+        ),
+        id="page-5-logo-wrapper",
+        style={
+            'position': 'absolute',
+            'top': '55px',
+            'right': '40px',
+            'transition': 'right 0.3s ease'
+        }
+    ),
+    
+    # About YYDS Section
+    html.Div([
+        html.H3("Why YYDS?", className="my-4", style={'fontWeight': 'bold'}),
+        html.P("""
+            Our team is named "YYDS," a phrase that originates from Chinese internet culture, meaning "永远的神" (yǒng yuǎn de shén) 
+            or "Eternal God." This term is used to describe something legendary, timeless, and worth admiring — the best of the best. 
+            For us, it reflects our commitment to creating something enduring and impactful, particularly in the realm of sustainability.
+        """, style={'lineHeight': '1.6'}),
+        html.P("""
+            In today's world, achieving true sustainability means creating systems, practices, and innovations that stand the test of time — 
+            solutions that are not only effective today but will also continue to make a positive impact far into the future. This is what "YYDS" 
+            represents to us: the aspiration to be a lasting force for good, to develop solutions that people can rely on, and to drive meaningful 
+            change that is resilient over time.
+        """, style={'lineHeight': '1.6'}),
+        html.P("""
+            Our team believes that sustainability is not just a goal but a journey toward a better, lasting world. By embracing the "YYDS" mindset, 
+            we aim to be "forever impactful" — creating solutions, tools, and practices in the field of sustainability that are not only effective 
+            but also resilient and adaptive to the challenges of tomorrow.
+        """, style={'lineHeight': '1.6'}),
+        html.P("""
+            In essence, YYDS symbolizes our commitment to excellence and timeless impact in sustainability. We want our contributions to be seen 
+            as YYDS: enduring, trustworthy, and legendary in the fight for a sustainable future.
+        """, style={'lineHeight': '1.6'}),
+        
+        # GitHub Link Section
+        html.Hr(),
+        html.Div(
+            [
+                html.H4("Learn More About Our Project", style={'fontWeight': 'bold', 'marginBottom': '15px'}),
+                html.A("View our GitHub Repository", href="https://github.com/Lucas1213WZY/DSS5105-YYDS", 
+                       target="_blank", style={
+                           'fontSize': '18px', 
+                           'color': '#007bff', 
+                           'textDecoration': 'none', 
+                           'fontWeight': 'bold'
+                       })
+            ],
+            style={
+                'marginTop': '20px',
+                'padding': '15px',
+                'backgroundColor': '#f9f9f9',
+                'borderRadius': '8px',
+                'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
+                'textAlign': 'center'
+            }
+        )
+    ], style={
+        'padding': '20px',
+        'backgroundColor': '#ffffff',
+        'borderRadius': '8px',
+        'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)'
+    })
+], fluid=True, style={'padding': '40px 0', 'maxWidth': '800px', 'margin': 'auto'})
+
+
+
 # Combine callback to handle both navigation and method switching
 @app.callback(Output('page-content', 'children'),
               Input('url', 'pathname'))
@@ -1455,6 +1810,10 @@ def display_page(pathname):
         return page_4_layout
     elif pathname == '/page-5':
         return page_5_layout
+    elif pathname == "/qa":
+        return page_qa_layout
+    elif pathname == "/about":
+        return page_about_layout
     else:
         return html.Div([
             dcc.RadioItems(

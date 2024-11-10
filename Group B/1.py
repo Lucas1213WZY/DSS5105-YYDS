@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output, State, callback, ctx
 import pandas as pd
 import plotly.express as px
 import io
@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import openai
 from dash import callback_context
 import re
+from dash.exceptions import PreventUpdate
 
 # Initialize the OpenAI client
 openai.api_key = "sk-svcacct-yirqs5Y1sVriNR6qGBs7ZSSRhXZd-uvMQdebTequv5z2oAy6rjhnnSQ_B6740T3BlbkFJyk98lfvPOiui5GB-FMMIMLWA8UY4bkO30YxytnTW8X505TFJmXIgswzK0sFAA"
@@ -276,7 +277,7 @@ def update_output(contents, filename, last_modified):
             elif filename.endswith('.xlsx'):
                 df = pd.read_excel(io.BytesIO(decoded))
             else:
-                return html.Div(['File format not supported，please upload csv or xlsx file'])
+                return html.Div(['File format not supported，please upload csv or xlsx file'], style={'color': 'red'})
 
             return html.Div([
                 html.H5(f"File {filename} uploaded！"),
@@ -335,9 +336,9 @@ style_with_error = {
     'width': '100%',
     'padding': '10px',
     'borderRadius': '10px',
-    'borderColor': 'red',  # Only change the color, not the border thickness
+    'borderColor': 'red',
     'borderStyle': 'solid',
-    'borderWidth': '1px'  # Match the original border width
+    'borderWidth': '2px' 
 }
 
 style_without_error = {
@@ -411,7 +412,7 @@ manual_input_layout = dbc.Container([
                                 html.I(className="fas fa-info-circle", id="zip-info-icon",
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
-                            dcc.Input(id='zip-input', type='text', placeholder="Enter Zip Code",  # Change 'number' to 'text'
+                            dcc.Input(id='zip-input', type='number', placeholder="Enter Zip Code",
                                       style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
                             html.Div(id='zip-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'})  # Error message div
                         ], width=6),
@@ -670,7 +671,7 @@ manual_input_layout = dbc.Container([
         dbc.Row([
             dbc.Col([
                 dbc.Button("Proceed to Data Quality Check", id="next-button", color="success", className="mt-4",
-                           style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='/page-2')
+                           style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'})
             ], width=3),
             html.Div(id="form-error", style={'color': 'red', 'fontSize': '14px', 'marginTop': '10px'})
         ], justify="center"),
@@ -680,6 +681,74 @@ manual_input_layout = dbc.Container([
         'padding': '20px'
     })
 ], fluid=True)
+
+#Call back for missing data
+@app.callback(
+    [Output("form-error", "children")] + [
+        Output("region-dropdown", "style"),
+        Output("building-input", "style"),
+        Output("zip-input", "style"),
+        Output("year-input", "style"),
+        Output("size-input", "style"),
+        Output("employee-input", "style"),
+        Output("energy-input", "style"),
+        Output("water-input", "style"),
+        Output("waste-input", "style"),
+        Output("subway-commute-input", "style"),
+        Output("bus-commute-input", "style"),
+        Output("taxi-commute-input", "style"),
+        Output("business-travel-flight-input", "style"),
+        Output("business-travel-hotel-input", "style"),
+        Output("business-procurement-air-freight-input", "style"),
+        Output("business-procurement-diesel-truck-input", "style"),
+        Output("business-procurement-electric-truck-input", "style"),
+        Output("url", "href")  # For conditional navigation
+    ],
+    [Input("next-button", "n_clicks")],
+    [
+        State("region-dropdown", "value"),
+        State("building-input", "value"),
+        State("zip-input", "value"),
+        State("year-input", "value"),
+        State("size-input", "value"),
+        State("employee-input", "value"),
+        State("energy-input", "value"),
+        State("water-input", "value"),
+        State("waste-input", "value"),
+        State("subway-commute-input", "value"),
+        State("bus-commute-input", "value"),
+        State("taxi-commute-input", "value"),
+        State("business-travel-flight-input", "value"),
+        State("business-travel-hotel-input", "value"),
+        State("business-procurement-air-freight-input", "value"),
+        State("business-procurement-diesel-truck-input", "value"),
+        State("business-procurement-electric-truck-input", "value")
+    ]
+)
+def validate_form(n_clicks, *input_values):
+    if n_clicks is None:
+        raise PreventUpdate
+
+    error_messages = []
+    styles = []
+
+    # Validate each field and assign the appropriate style
+    for value in input_values:
+        if value is None or value == "":
+            error_messages.append("Some fields are missing. Please fill out all required fields.")
+            styles.append(style_with_error)
+        else:
+            styles.append(style_without_error)
+
+    error_message = error_messages[0] if error_messages else ""
+    
+    # Set navigation URL only if all fields are valid
+    href = "/page-2" if not error_message else None
+    return [error_message] + styles + [href]
+
+
+
+
 
 
 @app.callback(

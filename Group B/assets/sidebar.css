@@ -1,0 +1,4 @@
+/* sidebar.css */
+#sidebar a:hover {
+    background-color: #444;  /* Slightly lighter background on hover */
+}

@@ -10,98 +10,126 @@ from dash_extensions import BeforeAfter
 import dash_leaflet as dl
 import base64
 import plotly.graph_objects as go
-import openai
 from dash import callback_context
 import re
+import folium
 from dash.exceptions import PreventUpdate
 from datetime import datetime
+from structured_feedback_handler import StructuredFeedbackHandler
+import json
 
-# Initialize the OpenAI client
-openai.api_key = "sk-svcacct-yirqs5Y1sVriNR6qGBs7ZSSRhXZd-uvMQdebTequv5z2oAy6rjhnnSQ_B6740T3BlbkFJyk98lfvPOiui5GB-FMMIMLWA8UY4bkO30YxytnTW8X505TFJmXIgswzK0sFAA"
 
 
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server
 
-# Sidebar layout
+#Sidebar Layout
 sidebar = html.Div(
     [
         # Main navigation links
         html.Div([
-            dcc.Link("Data Input", href="/page-1", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-database"),  # Icon for Data Input
+                html.Span(" Data Input", style={"marginLeft": "10px"})
+            ], href="/page-1", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
-            dcc.Link("Data Quality Check and Exploratory Data Analysis", href="/page-2", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-chart-line"),  # Icon for Data Quality Check
+                html.Span(" Data Quality Check and Exploratory Data Analysis", style={"marginLeft": "10px"})
+            ], href="/page-2", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
-            dcc.Link("Model Results and Benchmarking", href="/page-3", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-trophy"),  # Icon for Model Results
+                html.Span(" Model Results and Benchmarking", style={"marginLeft": "10px"})
+            ], href="/page-3", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
-            dcc.Link("Report and Chatbox", href="/page-4", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-comments"),  # Icon for Report and Chatbox
+                html.Span(" Report and Chatbox", style={"marginLeft": "10px"})
+            ], href="/page-4", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
-            dcc.Link("Feedback", href="/page-5", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-envelope"),  # Icon for Feedback
+                html.Span(" Feedback", style={"marginLeft": "10px"})
+            ], href="/page-5", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
         ], style={"marginBottom": "auto"}),  # Ensures other links are pushed to the bottom
 
         # Additional links at the bottom
         html.Div([
-            dcc.Link("Q&A", href="/qa", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-question-circle"),  # Icon for Q&A
+                html.Span(" Q&A", style={"marginLeft": "10px"})
+            ], href="/qa", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
-            dcc.Link("About Us", href="/about", style={
-                "display": "block",
+            dcc.Link([
+                html.I(className="fas fa-info-circle"),  # Icon for About Us
+                html.Span(" About Us", style={"marginLeft": "10px"})
+            ], href="/about", style={
+                "display": "flex",
+                "alignItems": "center",
                 "color": "white",
                 "padding": "12px 20px",
                 "textDecoration": "none",
-                "font-size": "18px",
-                "font-weight": "bold",
-                "border-radius": "5px",
+                "fontSize": "18px",
+                "fontWeight": "bold",
+                "borderRadius": "5px",
             }),
         ], style={"paddingTop": "20px"}),  # Add spacing above the bottom links
     ],
     id="sidebar",
     style={
         "padding": "15px",
-        "background-color": "#333",
+        "backgroundColor": "#333",
         "color": "white",
         "width": "220px",
         "height": "100vh",
@@ -113,8 +141,8 @@ sidebar = html.Div(
         "flexDirection": "column",  # Enable column layout for vertical alignment
         "transform": "translateX(-100%)",
         "transition": "transform 0.3s ease",
-        "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)",
-        "border-radius": "0 8px 8px 0",
+        "boxShadow": "2px 0 8px rgba(0, 0, 0, 0.3)",
+        "borderRadius": "0 8px 8px 0",
     }
 )
 
@@ -1214,16 +1242,7 @@ page_4_layout = dbc.Container([
     ]),
     dbc.Row([
         dbc.Col([
-            html.H5("Generate Report"),
-            dcc.Dropdown(
-                id='report-format',
-                options=[
-                    {'label': 'HTML', 'value': 'html'},
-                    {'label': 'PDF', 'value': 'pdf'},
-                ],
-                placeholder="Select Report Format",
-                style={'width': '100%', 'margin-bottom': '20px'}
-            ),
+            html.H5("Generate HTML Report"),
             dbc.Button("Download Report", id="report-button", color="secondary"),
             dcc.Download(id="download-report")
         ], width=4),
@@ -1432,7 +1451,6 @@ def generate_report(n_clicks):
                     <body>
                     <!-- Logo at the top of the report -->
                     <div style="text-align: center; margin-bottom: 20px;">
-                    <img src='/assets/teamlogo.png' alt="Company Logo" style="width: 220px; height: auto;">
                     </div>
                         {title_section}
                         {executive_summary}
@@ -1625,7 +1643,7 @@ qa_content = [
     },
     {
         "question": "What can use this dash?",
-        "answer": "aThis app is intended for users responsible for reporting on environmental metrics. No special training is needed, but a basic understanding of emissions and sustainability reporting is helpful."
+        "answer": "This app is intended for users responsible for reporting on environmental metrics. No special training is needed, but a basic understanding of emissions and sustainability reporting is helpful."
     },
     {
         "question": "Is there a file size limit for uploads?",
@@ -1649,11 +1667,13 @@ qa_content = [
     },
     {
         "question": "Who can I contact for support?",
-        "answer": "For support, please contact our team at e1352233@u.nus.edu We’re here to help with any issues you may have."
+        "answer": "For support, please contact our team at yyds@u.nus.edu We’re here to help with any issues you may have."
     },
 ]
 
-# Q&A layout with collapsible questions
+
+
+# Q&A layout with improved readability and icons
 page_qa_layout = dbc.Container([
     # Logo
     html.Div(
@@ -1669,8 +1689,9 @@ page_qa_layout = dbc.Container([
             'transition': 'right 0.3s ease'
         }
     ),
-    
-        html.Div([
+
+    # FAQ Section Title
+    html.Div([
         html.H3("Frequently Asked Questions", style={
             'fontWeight': 'bold',
             'fontSize': '28px',
@@ -1680,18 +1701,21 @@ page_qa_layout = dbc.Container([
         }),
     ]),
 
-# FAQ Accordion Section
+    # FAQ Accordion with Icons
     html.Div([
         dbc.Accordion(
             [
                 dbc.AccordionItem(
-                    title=qa["question"],
-                    children=html.P(qa["answer"], style={'padding': '10px', 'lineHeight': '1.6'}),
+                    title=html.Div([
+                        html.Span(qa["question"], style={"color": "#4a4a4a", 'fontSize': '18px', 'fontWeight': 'bold'})
+                    ]),
+                    children=html.P(qa["answer"], style={"color": "#4a4a4a", 'padding': '10px', 'lineHeight': '1.6'}),
                     style={
-                        'marginBottom': '10px',
+                        'backgroundColor': '#f8f9fa',
+                        'padding': '12px',
                         'borderRadius': '8px',
-                        'border': '1px solid #ddd',
-                        'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)',
+                        'marginBottom': '10px',
+                        'boxShadow': '0 2px 6px rgba(0, 0, 0, 0.1)'
                     }
                 )
                 for qa in qa_content
@@ -1704,13 +1728,20 @@ page_qa_layout = dbc.Container([
             }
         ),
         
-        # Contact information at the bottom
-        html.P(
-            "For more questions, please contact us at e1352233@u.nus.edu.",
+        # Contact Information
+        html.Div(
+            [
+                html.P(
+                    "For more questions, please contact us at yyds@u.nus.edu.",
+                    style={'fontSize': '16px', 'color': '#555', 'textAlign': 'center', 'marginBottom': '5px'}
+                ),
+                html.I(className="fas fa-envelope", style={'fontSize': '20px', 'color': '#007bff'})
+            ],
             style={
+                'padding': '20px',
+                'backgroundColor': '#e9ecef',
+                'borderRadius': '8px',
                 'marginTop': '20px',
-                'fontSize': '16px',
-                'color': '#555',
                 'textAlign': 'center'
             }
         )
@@ -1719,7 +1750,13 @@ page_qa_layout = dbc.Container([
         'backgroundColor': '#f9f9f9',
         'borderRadius': '8px',
         'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)'
+    }),
+
+    # Footer Message
+    html.Div("Made with ❤️ by Team YYDS", style={
+        'textAlign': 'center', 'color': '#4a4a4a', 'marginTop': '30px', 'fontSize': '16px'
     })
+    
 ], fluid=True, style={'padding': '40px 0', 'maxWidth': '800px', 'margin': 'auto'})
 
 
@@ -1741,61 +1778,98 @@ page_about_layout = dbc.Container([
             'transition': 'right 0.3s ease'
         }
     ),
-    
-    # About YYDS Section
-    html.Div([
-        html.H3("Why YYDS?", className="my-4", style={'fontWeight': 'bold'}),
-        html.P("""
-            Our team is named "YYDS," a phrase that originates from Chinese internet culture, meaning "永远的神" (yǒng yuǎn de shén) 
-            or "Eternal God." This term is used to describe something legendary, timeless, and worth admiring — the best of the best. 
-            For us, it reflects our commitment to creating something enduring and impactful, particularly in the realm of sustainability.
-        """, style={'lineHeight': '1.6'}),
-        html.P("""
-            In today's world, achieving true sustainability means creating systems, practices, and innovations that stand the test of time — 
-            solutions that are not only effective today but will also continue to make a positive impact far into the future. This is what "YYDS" 
-            represents to us: the aspiration to be a lasting force for good, to develop solutions that people can rely on, and to drive meaningful 
-            change that is resilient over time.
-        """, style={'lineHeight': '1.6'}),
-        html.P("""
-            Our team believes that sustainability is not just a goal but a journey toward a better, lasting world. By embracing the "YYDS" mindset, 
-            we aim to be "forever impactful" — creating solutions, tools, and practices in the field of sustainability that are not only effective 
-            but also resilient and adaptive to the challenges of tomorrow.
-        """, style={'lineHeight': '1.6'}),
-        html.P("""
-            In essence, YYDS symbolizes our commitment to excellence and timeless impact in sustainability. We want our contributions to be seen 
-            as YYDS: enduring, trustworthy, and legendary in the fight for a sustainable future.
-        """, style={'lineHeight': '1.6'}),
-        
-        # GitHub Link Section
-        html.Hr(),
-        html.Div(
-            [
-                html.H4("Learn More About Our Project", style={'fontWeight': 'bold', 'marginBottom': '15px'}),
-                html.A("View our GitHub Repository", href="https://github.com/Lucas1213WZY/DSS5105-YYDS", 
-                       target="_blank", style={
-                           'fontSize': '18px', 
-                           'color': '#007bff', 
-                           'textDecoration': 'none', 
-                           'fontWeight': 'bold'
-                       })
-            ],
-            style={
-                'marginTop': '20px',
-                'padding': '15px',
-                'backgroundColor': '#f9f9f9',
-                'borderRadius': '8px',
-                'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
-                'textAlign': 'center'
-            }
-        )
-    ], style={
-        'padding': '20px',
-        'backgroundColor': '#ffffff',
-        'borderRadius': '8px',
-        'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)'
-    })
-], fluid=True, style={'padding': '40px 0', 'maxWidth': '800px', 'margin': 'auto'})
 
+    # About YYDS Section with Icons
+    dbc.Card(
+        dbc.CardBody([
+            html.H3("Why YYDS?", className="my-4", style={"color": "#4a4a4a",'fontWeight': 'bold'}),
+            html.Div(
+                [
+                    html.I(className="fas fa-seedling", style={"color": "#2e7d32", "marginRight": "10px"}),
+                    html.H5("Our Mission", style={"color": "#4a4a4a", "display": "inline", "fontWeight": "bold"})
+                ],
+                style={"marginBottom": "10px"}
+            ),
+            html.P("""
+                Our team is named "YYDS," a phrase that originates from Chinese internet culture, meaning "永远的神" (yǒng yuǎn de shén) 
+                or "Eternal God." This term is used to describe something legendary, timeless, and worth admiring — the best of the best. 
+                For us, it reflects our commitment to creating something enduring and impactful, particularly in the realm of sustainability.
+            """, style={'lineHeight': '1.6'}),
+            
+            html.Div(
+                [
+                    html.I(className="fas fa-recycle", style={"color": "#00796b", "marginRight": "10px"}),
+                    html.H5("Sustainability Goals", style={"color": "#4a4a4a", "display": "inline", "fontWeight": "bold"})
+                ],
+                style={"marginTop": "20px", "marginBottom": "10px"}
+            ),
+            html.P("""
+                In today's world, achieving true sustainability means creating systems, practices, and innovations that stand the test of time — 
+                solutions that are not only effective today but will also continue to make a positive impact far into the future. This is what "YYDS" 
+                represents to us: the aspiration to be a lasting force for good, to develop solutions that people can rely on, and to drive meaningful 
+                change that is resilient over time.
+            """, style={'lineHeight': '1.6'}),
+            
+            html.Div(
+                [
+                    html.I(className="fas fa-hands-helping", style={"color": "#388e3c", "marginRight": "10px"}),
+                    html.H5("Our Commitment", style={"color": "#4a4a4a", "display": "inline", "fontWeight": "bold"})
+                ],
+                style={"marginTop": "20px", "marginBottom": "10px"}
+            ),
+            html.P("""
+                Our team believes that sustainability is not just a goal but a journey toward a better, lasting world. By embracing the "YYDS" mindset, 
+                we aim to be "forever impactful" — creating solutions, tools, and practices in the field of sustainability that are not only effective 
+                but also resilient and adaptive to the challenges of tomorrow.
+            """, style={'lineHeight': '1.6'}),
+            
+            html.P("""
+                In essence, YYDS symbolizes our commitment to excellence and timeless impact in sustainability. We want our contributions to be seen 
+                as YYDS: enduring, trustworthy, and legendary in the fight for a sustainable future.
+            """, style={'lineHeight': '1.6'}),
+        ]),
+        style={
+            'padding': '20px',
+            'backgroundColor': '#ffffff',
+            'borderRadius': '8px',
+            'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)'
+        }
+    ),
+
+    # GitHub Link Section
+    html.Div(
+        [
+            html.H4("Learn More About Our Project", style={'fontWeight': 'bold', 'marginBottom': '15px'}),
+            html.A("View our GitHub Repository", href="https://github.com/Lucas1213WZY/DSS5105-YYDS", 
+                   target="_blank", style={
+                       'fontSize': '18px', 
+                       'color': '#007bff', 
+                       'textDecoration': 'none', 
+                       'fontWeight': 'bold'
+                   })
+        ],
+        style={
+            'marginTop': '20px',
+            'padding': '15px',
+            'backgroundColor': '#f9f9f9',
+            'borderRadius': '8px',
+            'boxShadow': '0px 4px 8px rgba(0, 0, 0, 0.1)',
+            'textAlign': 'center'
+        }
+    ),
+    
+    # Footer Message
+    html.Div(
+        "Made with ❤️ by Team YYDS",
+        style={
+            "textAlign": "center",
+            "padding": "20px",
+            "fontSize": "14px",
+            "color": "gray",
+            "marginTop": "20px"
+        }
+    )
+], fluid=True, style={'padding': '40px 0', 'maxWidth': '800px', 'margin': 'auto'})
 
 
 # Combine callback to handle both navigation and method switching

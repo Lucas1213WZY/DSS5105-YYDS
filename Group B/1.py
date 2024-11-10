@@ -1639,10 +1639,10 @@ def navigate(n_clicks_back, n_clicks_home):
 qa_content = [
     {
         "question": "What is this dash for?",
-        "answer": "This app helps with data input and validation for sustainability reporting. It assists users in inputting environmental data, performing data quality checks, and generating reports."
+        "answer": "This dash helps with data input and validation for sustainability reporting. It assists users in inputting environmental data, performing data quality checks, and generating reports."
     },
     {
-        "question": "What can use this dash?",
+        "question": "Who can use this dash?",
         "answer": "This app is intended for users responsible for reporting on environmental metrics. No special training is needed, but a basic understanding of emissions and sustainability reporting is helpful."
     },
     {

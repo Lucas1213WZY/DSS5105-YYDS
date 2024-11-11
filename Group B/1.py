@@ -1218,119 +1218,180 @@ def update_violin_chart(value):
 
 
 # Define layout for Page 4 - Report Generation and Chatbot
-page_4_layout = dbc.Container([
-        html.Div(
-        html.Img(
-            src='./assets/teamlogo.png',
-            style={
-                'width': '220px',
-                'height': 'auto',
-            }
-        ),
-        id="page-4-logo-wrapper",
+
+# Open AI
+def generate_response(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=150,
+            temperature=0.7 
+        )
+        return response.choices[0].message['content'].strip()
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+app = dash.Dash(__name__)
+# Function to create chat bubbles with typing effect
+def create_chat_bubble(content, is_user=False, is_typing=False):
+    if is_typing:
+        # Display typing animation
+        content = html.Div([
+            html.Span(".", className="dot"),
+            html.Span(".", className="dot"),
+            html.Span(".", className="dot")
+        ], className="typing-animation")
+    return html.Div(
+        content,
         style={
-            'position': 'absolute',
-            'top': '55px',
-            'right': '40px',
-            'transition': 'right 0.3s ease'
+            'backgroundColor': '#d1e7f3' if is_user else '#ffffff',  # User bubble is light blue, bot bubble is white
+            'color': '#333',
+            'padding': '12px 18px',
+            'borderRadius': '18px',
+            'maxWidth': '70%',
+            'alignSelf': 'flex-end' if is_user else 'flex-start',
+            'marginBottom': '10px',
+            'textAlign': 'left' if not is_user else 'right',
+            'lineHeight': '1.6',
+            'fontSize': '16px',
+            'display': 'inline-block' if not is_typing else 'flex',
+            'alignItems': 'center' if is_typing else 'initial',
+            'border': '1.5px solid #b0d4e3',  # Slightly thicker border
+            'boxShadow': '0 2px 8px rgba(0, 0, 0, 0.1)',  # Subtle shadow for depth
+            'fontFamily': 'Montserrat, sans-serif'
         }
-    ),
+    )
+
+
+page_4_layout = dbc.Container([
+    # Title
     dbc.Row([
         dbc.Col(html.H1("Generate Report and Chat Assistance",
                         className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
+
+    # Centered Report Generation Section
     dbc.Row([
         dbc.Col([
-            html.H5("Generate HTML Report"),
-            dbc.Button("Download Report", id="report-button", color="secondary"),
+            html.H5("Generate HTML Report", style={"textAlign": "center"}),
+            dbc.Button("Download Report", id="report-button", color="secondary", style={
+                'width': '25%', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '16px', 'fontWeight': 'bold',
+                'margin': 'auto', 'display': 'block'
+            }),
             dcc.Download(id="download-report")
-        ], width=4),
-    ], className="mb-5"),
+        ], width=12, className="mb-5", style={'textAlign': 'center'}),
+    ]),
+
+    # Chatbot Assistance Section
     dbc.Row([
         dbc.Col([
-            html.H5("Chatbot Assistance", className="mb-3"),
+            html.H5("Chatbot Assistance", className="mb-3", style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}),
             html.Div([
-                dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
-                    'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'border': '1px solid #ced4da', 'marginBottom': '10px'
+                html.Div([
+                    dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
+                        'width': '85%',
+                        'padding': '12px',
+                        'borderRadius': '25px',
+                        'border': '2px solid #ced4da',  # Slightly thicker border
+                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.1)',  # Shadow for depth
+                        'marginBottom': '10px',
+                        'fontSize': '16px',
+                        'fontFamily': 'Montserrat, sans-serif'
+                    }),
+                    html.Button(html.I(className="fas fa-paper-plane"), id='send-button', n_clicks=0, style={
+                        'backgroundColor': '#1e88e5',
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': '50%',
+                        'padding': '10px',
+                        'marginLeft': '10px',
+                        'width': '40px',
+                        'height': '40px',
+                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  # Shadow for depth
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center'
+                    })
+                ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
+                html.Div(id='chatbot-response', className="mt-3", style={
+                    'color': '#4a4a4a',
+                    'border': '1.5px solid #e9ecef',
+                    'borderRadius': '10px',
+                    'padding': '20px',
+                    'backgroundColor': '#f8f9fa',
+                    'minHeight': '200px',
+                    'fontSize': '16px',
+                    'lineHeight': '1.6',
+                    'display': 'flex',
+                    'flexDirection': 'column',
+                    'gap': '10px',
+                    'width': '80%',
+                    'margin': 'auto',
+                    'boxShadow': '0 2px 10px rgba(0, 0, 0, 0.1)'  # Subtle shadow for container
                 }),
-                html.Button('Send', id='send-button', n_clicks=0, style={
-                    'backgroundColor': '#17a2b8', 'color': 'white', 'border': 'none', 'borderRadius': '5px', 'padding': '8px 16px', 'marginBottom': '10px'
-                })
-            ], style={'display': 'flex', 'gap': '10px', 'flexDirection': 'column'}),
-            html.Div(id='chatbot-response', className="mt-3", style={
-                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-        ], width=6),
-    ]),
+                dcc.Interval(id="typing-interval-greeting", interval=3000, n_intervals=0, max_intervals=1),  # Greeting 3-second interval
+                dcc.Interval(id="typing-interval-response", interval=3000, n_intervals=0, max_intervals=1),  # Response 3-second interval
+                dcc.Interval(id="page-load-trigger", interval=1, n_intervals=0, max_intervals=1)  # Trigger on page load
+            ])
+        ], width=8, className="mb-5"),
+    ], className="justify-content-center"),
+
+    # Next Button to proceed
     dbc.Row([
         dbc.Col([
             dbc.Button("Next: Feedback Survey", id="go-to-page-5", color="success", href='/page-5', className="mt-4", style={
-                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'
+                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold', 'fontSize': '16px'
             })
         ], width=3),
-    ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
-])
+    ], justify="center", className="mt-5 mb-5"),
+], fluid=True)
 
 
-@app.callback(
-    Output("page-4-logo-wrapper", "style"),
-    [Input("toggle-button", "n_clicks")],
-    [State("page-4-logo-wrapper", "style")]
-)
-def adjust_logo_position(n_clicks, current_style):
-    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
-        current_style["right"] = "0px"  # Adjust to match sidebar width
-    else:
-        # Reset logo position when sidebar is hidden
-        current_style["right"] = "40px"
-    return current_style
 
-
-# Function to get chatbot response
-def get_chatbot_response(user_input):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_input}]
-        )
-        return response.choices[0].message["content"]
-    except Exception as e:
-        return f"Error: {e}"
-
-
-# Callback for chatbot response
 @app.callback(
     Output('chatbot-response', 'children'),
+    Output('typing-interval-greeting', 'n_intervals'),
+    Output('typing-interval-response', 'n_intervals'),
+    Input('page-load-trigger', 'n_intervals'),
     Input('send-button', 'n_clicks'),
-    State('chatbot-input', 'value')
+    Input('typing-interval-greeting', 'n_intervals'),
+    Input('typing-interval-response', 'n_intervals'),
+    State('chatbot-input', 'value'),
+    State('chatbot-response', 'children')
 )
-def update_chatbot_response(n_clicks, user_input):
-    if n_clicks > 0 and user_input:
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant specialized in GHG emissions."},
-                    {"role": "user", "content": user_input}
-                ],
-                max_tokens=150,
-                temperature=0.7
-            )
-            generated_response = response.choices[0].message.content.strip()
-            return html.Div(generated_response, style={
-                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
-                'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-        except Exception as e:
-            return html.Div(f"Error: {str(e)}", style={
-                'color': 'red', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
-                'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-    return ""
+def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_intervals, response_typing_intervals, user_input, existing_chat):
+    ctx = callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
 
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # Display initial typing animation on page load
+    if trigger_id == 'page-load-trigger' and page_load_trigger == 1:
+        typing_animation = create_chat_bubble("", is_typing=True)
+        return [typing_animation], 0, dash.no_update  # Start typing interval for greeting message
+
+    # Show the greeting message after typing animation ends
+    if trigger_id == 'typing-interval-greeting' and greeting_typing_intervals == 1:
+        greeting_message = create_chat_bubble("Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!", is_user=False)
+        return [greeting_message], dash.no_update, dash.no_update
+
+    # Show typing animation for user-submitted question
+    if trigger_id == 'send-button' and send_clicks > 0 and user_input:
+        user_bubble = create_chat_bubble(user_input, is_user=True)
+        typing_animation = create_chat_bubble("", is_typing=True)
+        existing_chat = (existing_chat or []) + [user_bubble, typing_animation]
+        return existing_chat, dash.no_update, 0  # Start typing interval for response
+
+    # Show bot response after typing animation for user question
+    if trigger_id == 'typing-interval-response' and response_typing_intervals == 1:
+        bot_response = create_chat_bubble("Here's my response!", is_user=False)
+        if existing_chat:
+            return existing_chat[:-1] + [bot_response], dash.no_update, dash.no_update
+
+    raise dash.exceptions.PreventUpdate
 
 # generate report
 @app.callback(

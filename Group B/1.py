@@ -12,13 +12,14 @@ import base64
 import plotly.graph_objects as go
 from dash import callback_context
 import re
-import folium
+import time
 from dash.exceptions import PreventUpdate
 from datetime import datetime
 from structured_feedback_handler import StructuredFeedbackHandler
 import json
+import openai
 
-
+openai.api_key = "sk-Ok_ZJrFVhJS-kEZYVyfZ3jKxczPvGAA6qh8XM7am3LT3BlbkFJVum_s8xfuWOswAet7AViKly7kh9l4Ts6Iy3xy1CdoA"
 
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
@@ -1035,9 +1036,6 @@ page_2_layout = dbc.Container([
 ], fluid=True)
 
 
-df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
-df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
-
 @app.callback(
     Output("page-2-logo-wrapper", "style"),
     [Input("toggle-button", "n_clicks")],
@@ -1053,36 +1051,36 @@ def adjust_logo_position(n_clicks, current_style):
     return current_style
 
 
+
+
+# Define layout for Page 3 - Model Running and Visualization
+df = pd.read_csv('merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
+df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')
+
 # Define layout for Page 3 - Model Running and Visualization
 page_3_layout = dbc.Container([
-     html.Div(
+    # Logo and Header
+    html.Div(
         html.Img(
             src='./assets/teamlogo.png',
-            style={
-                'width': '220px',
-                'height': 'auto',
-            }
+            style={'width': '220px', 'height': 'auto'}
         ),
         id="page-3-logo-wrapper",
-        style={
-            'position': 'absolute',
-            'top': '55px',
-            'right': '40px',
-            'transition': 'right 0.3s ease'
-        }
+        style={'position': 'absolute', 'top': '55px', 'right': '40px', 'transition': 'right 0.3s ease'}
     ),
-    # Main title for Model Results and Benchmarking
+    
     dbc.Row([
         dbc.Col(html.H1("Model Results and Benchmarking",
                         className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
 
-    # Dropdown for selecting building names
+    # Dropdown for Building Selection
     dbc.Row([
         dbc.Col(html.H5("Select Building Name", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Dropdown(
             id='dropdown-selection',
@@ -1091,12 +1089,13 @@ page_3_layout = dbc.Container([
             style={"width": "100%"}
         ), width=6),
     ], className="mb-5"),
-
+    
     # Section for Award and Year Trend Graphs
     dbc.Row([
         dbc.Col(html.H5("Model Results Visualizations", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Graph(id='award'), width=6),
         dbc.Col(dcc.Graph(id='year_trend_line'), width=6),
@@ -1107,10 +1106,25 @@ page_3_layout = dbc.Container([
         dbc.Col(html.H5("Additional Analysis", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Graph(id='violin'), width=6),
         dbc.Col(dcc.Graph(id='pie_1'), width=3),
         dbc.Col(dcc.Graph(id='pie_2'), width=3),
+    ], className="mb-5"),
+
+    # Image Section for visual assets
+    dbc.Row([
+        dbc.Col(html.H5("Transportation Contribution by Region Heatmaps", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+
+    dbc.Row([
+        dbc.Col(html.Img(src="assets/2.png", style={"width": "100%", "height": "auto"}), width=12),
+    ], className="mb-3"),
+
+    dbc.Row([
+        dbc.Col(html.Img(src="assets/1.png", style={"width": "100%", "height": "auto"}), width=12),
     ], className="mb-5"),
 
     # Button to navigate to the next page
@@ -1122,7 +1136,7 @@ page_3_layout = dbc.Container([
     ], justify="center", className="mt-4 mb-5"),
 ], fluid=True)
 
-
+# Callback for sidebar adjustment
 @app.callback(
     Output("page-3-logo-wrapper", "style"),
     [Input("toggle-button", "n_clicks")],
@@ -1130,15 +1144,13 @@ page_3_layout = dbc.Container([
 )
 def adjust_logo_position(n_clicks, current_style):
     if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
         current_style["right"] = "0px"  # Adjust to match sidebar width
     else:
-        # Reset logo position when sidebar is hidden
         current_style["right"] = "40px"
     return current_style
 
 
-# Callbacks for the visualizations on Page 3
+# Callbacks for visualizations on Page 3
 # Line Chart
 @app.callback(
     Output('year_trend_line', 'figure'),
@@ -1223,16 +1235,16 @@ def update_violin_chart(value):
 def generate_response(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",  
+            model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=150,
-            temperature=0.7 
+            max_tokens=150, 
+            temperature=0.7  
         )
         return response.choices[0].message['content'].strip()
     except Exception as e:
         return f"An error occurred: {e}"
 
-app = dash.Dash(__name__)
+
 # Function to create chat bubbles with typing effect
 def create_chat_bubble(content, is_user=False, is_typing=False):
     if is_typing:
@@ -1309,11 +1321,29 @@ page_4_layout = dbc.Container([
                         'marginLeft': '10px',
                         'width': '40px',
                         'height': '40px',
-                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  # Shadow for depth
+                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
                         'display': 'flex',
                         'alignItems': 'center',
                         'justifyContent': 'center'
-                    })
+                    }),
+                    html.Button(
+                        html.I(className="fas fa-redo-alt"),  
+                        id="refresh-button",
+                        n_clicks=0,
+                        style={
+                            'backgroundColor': '#17a2b8',  
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '50%',
+                            'padding': '10px',
+                            'marginLeft': '10px',
+                            'width': '40px',
+                            'height': '40px',
+                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center'
+                    }),
                 ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
                 html.Div(id='chatbot-response', className="mt-3", style={
                     'color': '#4a4a4a',
@@ -1358,10 +1388,12 @@ page_4_layout = dbc.Container([
     Input('send-button', 'n_clicks'),
     Input('typing-interval-greeting', 'n_intervals'),
     Input('typing-interval-response', 'n_intervals'),
+    Input('refresh-button', 'n_clicks'),
     State('chatbot-input', 'value'),
     State('chatbot-response', 'children')
 )
-def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_intervals, response_typing_intervals, user_input, existing_chat):
+
+def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_intervals, response_typing_intervals, refresh_clicks, user_input, existing_chat):
     ctx = callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
@@ -1372,26 +1404,35 @@ def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_inte
     if trigger_id == 'page-load-trigger' and page_load_trigger == 1:
         typing_animation = create_chat_bubble("", is_typing=True)
         return [typing_animation], 0, dash.no_update  # Start typing interval for greeting message
+    
 
     # Show the greeting message after typing animation ends
     if trigger_id == 'typing-interval-greeting' and greeting_typing_intervals == 1:
         greeting_message = create_chat_bubble("Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!", is_user=False)
         return [greeting_message], dash.no_update, dash.no_update
-
+    
+    # Refresh
+    if trigger_id == 'refresh-button' and refresh_clicks > 0:
+        greeting_message = create_chat_bubble(
+            "Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!",
+            is_user=False
+        )
+        return [greeting_message], 0, 0
+    
     # Show typing animation for user-submitted question
     if trigger_id == 'send-button' and send_clicks > 0 and user_input:
         user_bubble = create_chat_bubble(user_input, is_user=True)
         typing_animation = create_chat_bubble("", is_typing=True)
         existing_chat = (existing_chat or []) + [user_bubble, typing_animation]
-        return existing_chat, dash.no_update, 0  # Start typing interval for response
 
-    # Show bot response after typing animation for user question
-    if trigger_id == 'typing-interval-response' and response_typing_intervals == 1:
-        bot_response = create_chat_bubble("Here's my response!", is_user=False)
-        if existing_chat:
-            return existing_chat[:-1] + [bot_response], dash.no_update, dash.no_update
+        bot_response_content = generate_response(user_input)
+        bot_response = create_chat_bubble(bot_response_content, is_user=False)
+
+        return existing_chat[:-1] + [bot_response], dash.no_update, dash.no_update
 
     raise dash.exceptions.PreventUpdate
+
+
 
 # generate report
 @app.callback(

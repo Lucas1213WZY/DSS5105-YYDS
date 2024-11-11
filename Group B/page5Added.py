@@ -19,6 +19,7 @@ from structured_feedback_handler import StructuredFeedbackHandler  # Import the 
 import json
 import openai
 import numpy as np
+from plotly.subplots import make_subplots
 
 
 # Initialize the app
@@ -756,29 +757,20 @@ manual_input_layout = dbc.Container([
     })
 ], fluid=True)
 
-#Call back for missing data
 @app.callback(
-    [Output("form-error", "children")] + [
-        Output("region-dropdown", "style"),
-        Output("building-input", "style"),
-        Output("zip-input", "style"),
-        Output("year-input", "style"),
-        Output("size-input", "style"),
-        Output("employee-input", "style"),
-        Output("energy-input", "style"),
-        Output("water-input", "style"),
-        Output("waste-input", "style"),
-        Output("subway-commute-input", "style"),
-        Output("bus-commute-input", "style"),
-        Output("taxi-commute-input", "style"),
-        Output("business-travel-flight-input", "style"),
-        Output("business-travel-hotel-input", "style"),
-        Output("business-procurement-air-freight-input", "style"),
-        Output("business-procurement-diesel-truck-input", "style"),
-        Output("business-procurement-electric-truck-input", "style"),
-        Output("url", "href")  # For conditional navigation
+    [
+        Output("form-error", "children"),
+        Output("url", "href")
+    ] + [
+        Output(f"{input_id}", "style") for input_id in [
+            "region-dropdown", "building-input", "zip-input", "year-input", "size-input", "employee-input",
+            "energy-input", "water-input", "waste-input", "subway-commute-input", "bus-commute-input",
+            "taxi-commute-input", "business-travel-flight-input", "business-travel-hotel-input",
+            "business-procurement-air-freight-input", "business-procurement-diesel-truck-input",
+            "business-procurement-electric-truck-input"
+        ]
     ],
-    [Input("next-button", "n_clicks")],
+    Input("next-button", "n_clicks"),
     [
         State("region-dropdown", "value"),
         State("building-input", "value"),
@@ -799,26 +791,41 @@ manual_input_layout = dbc.Container([
         State("business-procurement-electric-truck-input", "value")
     ]
 )
-def validate_form(n_clicks, *input_values):
+def validate_and_store_form(n_clicks, *input_values):
     if n_clicks is None:
         raise PreventUpdate
 
+    # Define the names of the fields to match input values
+    field_names = [
+        "Region", "Building Name", "Zip Code", "Year", "Size", "Number of Employees",
+        "Energy", "Water", "Waste", "Subway Commute", "Bus Commute", "Taxi Commute",
+        "Business Travel Flight", "Business Travel Hotel", "Air Freight", "Diesel Truck Freight",
+        "Electric Truck Freight"
+    ]
+    
+    # Initialize error handling and storage variables
     error_messages = []
     styles = []
+    stored_data = {}  # Dictionary to store input values
 
     # Validate each field and assign the appropriate style
-    for value in input_values:
+    for idx, value in enumerate(input_values):
         if value is None or value == "":
-            error_messages.append("Some fields are missing. Please fill out all required fields.")
-            styles.append(style_with_error)
+            error_messages.append(f"Field '{field_names[idx]}' is missing. Please fill out all required fields.")
+            styles.append({"border": "1px solid red"})  # Show error style
         else:
-            styles.append(style_without_error)
+            styles.append({"border": "1px solid #ced4da"})  # Valid style
+            stored_data[field_names[idx]] = value  # Store valid values in dictionary
 
+    # Check for errors and set navigation URL only if all fields are valid
     error_message = error_messages[0] if error_messages else ""
-    
-    # Set navigation URL only if all fields are valid
     href = "/page-2" if not error_message else None
-    return [error_message] + styles + [href]
+
+    # Log or print the stored data dictionary for debugging/confirmation
+    print("Stored Data Dictionary:", stored_data)  # This can be logged or printed to console
+
+    return [error_message, href] + styles
+
 
 
 
@@ -979,12 +986,29 @@ freight_validation_callback('business-procurement-air-freight-input', 'air-freig
 freight_validation_callback('business-procurement-diesel-truck-input', 'diesel-truck-error', 'Diesel Truck Freight')
 freight_validation_callback('business-procurement-electric-truck-input', 'electric-truck-error', 'Electric Truck Freight')
 
+# indicator calculations and predictions
+
+@app.callback(
+    Output("some-output", "children"),  # Replace with the actual output(s) you need
+    Input("form-data-store", "data")
+)
+def use_stored_data(stored_data):
+    # Check if stored_data is available
+    if stored_data is None:
+        return "No data stored yet."
+    
+    # Use stored_data directly as a dictionary
+    # For example, here we just format and display the entire dictionary
+    dash_table = stored_data
+
+    
+    # Now you have access to the entire dictionary and can use it as needed
+    return f"Stored Data: {dash_table}"
 
 
 
-
-# Page 2 layout addition for Data Quality Action Options
-# Define layout for Page 2 - Data Quality Check and EDA
+selected_columns = ['Employee', 'Transportation', 'Water', 'Waste', 'Energy', 'GFA', 'EUI']
+# Updated Page 2 layout to include EDA pair plot visualization
 page_2_layout = dbc.Container([
     html.Div(
         html.Img(
@@ -1008,14 +1032,6 @@ page_2_layout = dbc.Container([
                         className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
-    # Data Completeness Visualization Section
-    dbc.Row([
-        dbc.Col(html.H5("Data Completeness Visualization", className="text-left", style={"fontWeight": "600"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-    dbc.Row([
-        dbc.Col(dcc.Graph(id='completeness-graph'), width=12),
-    ], className="mb-5"),
 
     # Data Table Overview Section
     dbc.Row([
@@ -1045,8 +1061,42 @@ page_2_layout = dbc.Container([
             dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1'),
             dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="primary", href='/page-3', className="ml-2")
         ], className="mt-4 mb-5", width=6),
-    ])
+    ]),
+
+    # Exploratory Data Analysis (EDA) Section
+    dbc.Row([
+        dbc.Col(html.H5("Exploratory Data Analysis", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+
+    # Summary Statistics Section
+    dbc.Row([
+        dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dash_table.DataTable(id='summary-statistics-table', style_table={'overflowX': 'auto'}), width=12)
+    ], className="mb-5"),
+
+    # Compact Histograms Section with Bound Plot Areas
+    dbc.Row([
+        dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)  # Adjust height if needed
+    ], className="mt-5"),
+
+    # Compact Boxplots Section with Bound Plot Areas
+    dbc.Row([
+        dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+    dbc.Row([
+        dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)  # Adjust height if needed
+    ], className="mt-5"),
 ], fluid=True)
+
 
 @app.callback(
     Output("page-2-logo-wrapper", "style"),
@@ -1124,6 +1174,90 @@ def drop_missing_data(n_clicks):
                 )
             ])
     return None
+
+@app.callback(
+    Output('summary-statistics-table', 'data'),
+    Input('url', 'pathname')
+)
+def display_summary_statistics(pathname):
+    if pathname == '/page-2' and 'uploaded_df' in global_data:
+        df = global_data['uploaded_df'][selected_columns]
+        
+        # Calculate summary statistics
+        summary_stats = df.describe().transpose().reset_index()
+        summary_stats.columns = ['Column', 'Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
+        
+        # Convert summary statistics to dict for dash_table
+        table_data = summary_stats.to_dict('records')
+        
+        return table_data
+    
+    return []
+
+
+# eda histogram and 
+
+@app.callback(
+    [Output('histograms', 'figure'), Output('box-plots', 'figure')],
+    Input('url', 'pathname')
+)
+def display_eda_visualizations(pathname):
+    if pathname == '/page-2' and 'uploaded_df' in global_data:
+        df = global_data['uploaded_df'][selected_columns]
+        
+        # Compact Histograms - two histograms per row
+        num_columns = 2
+        num_rows = (len(selected_columns) + 1) // num_columns
+        histograms_fig = make_subplots(rows=num_rows, cols=num_columns, subplot_titles=selected_columns, vertical_spacing=0.05, horizontal_spacing=0.05)
+        
+        for i, col in enumerate(selected_columns):
+            row = i // num_columns + 1
+            col_pos = i % num_columns + 1
+            histograms_fig.add_trace(
+                go.Histogram(x=df[col], name=col),
+                row=row, col=col_pos
+            )
+        
+        # Set layout properties for compact view
+        histograms_fig.update_layout(
+            title='Histograms of Selected Columns',
+            height=150 * num_rows,  # Reduce height per row for compactness
+            margin=dict(l=10, r=10, t=40, b=10),  # Narrow margins
+            showlegend=False
+        )
+        histograms_fig.update_xaxes(tickangle=45, tickfont=dict(size=8))  # Smaller, rotated x-axis labels
+        histograms_fig.update_yaxes(tickfont=dict(size=8), showgrid=False)  # Smaller y-axis labels, no grid
+
+        # Compact Horizontal Boxplots - two boxplots per row
+        box_plots_fig = make_subplots(rows=num_rows, cols=num_columns, subplot_titles=selected_columns, vertical_spacing=0.05, horizontal_spacing=0.05)
+        
+        for i, col in enumerate(selected_columns):
+            row = i // num_columns + 1
+            col_pos = i % num_columns + 1
+            box_plots_fig.add_trace(
+                go.Box(x=df[col], name=col, orientation="h"),  # Set orientation to horizontal
+                row=row, col=col_pos
+            )
+        
+        # Set layout properties for compact view
+        box_plots_fig.update_layout(
+            title='Boxplots of Selected Columns',
+            height=150 * num_rows,  # Reduce height per row for compactness
+            margin=dict(l=10, r=10, t=40, b=10),  # Narrow margins
+            showlegend=False,
+            boxmode='group'
+        )
+        box_plots_fig.update_xaxes(tickfont=dict(size=8))  # Smaller x-axis labels for horizontal orientation
+        box_plots_fig.update_yaxes(tickangle=0, tickfont=dict(size=8), showgrid=False)  # Smaller y-axis labels, no grid
+        
+        return histograms_fig, box_plots_fig
+    
+    return go.Figure(), go.Figure()
+
+
+
+
+
 
 
 df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')

@@ -37,7 +37,7 @@ with open(assets_path) as f:
 selected_commuting_factors = {}
 
 
-openai.api_key = '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'
+openai.api_key = 'example key'
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server

@@ -1,0 +1,167 @@
+{
+    "Geylang": {
+        "Commuting Factor_Subway": 0.036729895,
+        "Commuting Factor_Bus": 0.098391308,
+        "Commuting Factor_Taxi": 0.196346264
+    },
+    "Queenstown": {
+        "Commuting Factor_Subway": 0.034438699,
+        "Commuting Factor_Bus": 0.092253698,
+        "Commuting Factor_Taxi": 0.184098264
+    },
+    "Museum": {
+        "Commuting Factor_Subway": 0.030992617,
+        "Commuting Factor_Bus": 0.083022402,
+        "Commuting Factor_Taxi": 0.165676611
+    },
+    "Downtown Core": {
+        "Commuting Factor_Subway": 0.01025,
+        "Commuting Factor_Bus": 0.027457495,
+        "Commuting Factor_Taxi": 0.05479322
+    },
+    "Outram": {
+        "Commuting Factor_Subway": 0.000574101,
+        "Commuting Factor_Bus": 0.001537891,
+        "Commuting Factor_Taxi": 0.003068962
+    },
+    "Marine Parade": {
+        "Commuting Factor_Subway": 0.0005299,
+        "Commuting Factor_Bus": 0.001419486,
+        "Commuting Factor_Taxi": 0.002832676
+    },
+    "Ang Mo Kio": {
+        "Commuting Factor_Subway": 0.0002351,
+        "Commuting Factor_Bus": 0.000629781,
+        "Commuting Factor_Taxi": 0.001256769
+    },
+    "Bukit Batok": {
+        "Commuting Factor_Subway": 9.98e-05,
+        "Commuting Factor_Bus": 0.000267423,
+        "Commuting Factor_Taxi": 0.000533659
+    },
+    "Jurong East": {
+        "Commuting Factor_Subway": 8.05e-05,
+        "Commuting Factor_Bus": 0.000215695,
+        "Commuting Factor_Taxi": 0.000430434
+    },
+    "Hougang": {
+        "Commuting Factor_Subway": 7.06032e-05,
+        "Commuting Factor_Bus": 0.000189131,
+        "Commuting Factor_Taxi": 0.000377422
+    },
+    "Woodlands": {
+        "Commuting Factor_Subway": 4.95e-05,
+        "Commuting Factor_Bus": 0.000132546,
+        "Commuting Factor_Taxi": 0.000264504
+    },
+    "Singapore River": {
+        "Commuting Factor_Subway": 3.74495e-05,
+        "Commuting Factor_Bus": 0.000100319,
+        "Commuting Factor_Taxi": 0.000200193
+    },
+    "Tampines": {
+        "Commuting Factor_Subway": 3.21727e-05,
+        "Commuting Factor_Bus": 8.61836e-05,
+        "Commuting Factor_Taxi": 0.000171985
+    },
+    "Orchard": {
+        "Commuting Factor_Subway": 3.00283e-05,
+        "Commuting Factor_Bus": 8.04393e-05,
+        "Commuting Factor_Taxi": 0.000160522
+    },
+    "Toa Payoh": {
+        "Commuting Factor_Subway": 2.51392e-05,
+        "Commuting Factor_Bus": 6.73425e-05,
+        "Commuting Factor_Taxi": 0.000134386
+    },
+    "Jurong West": {
+        "Commuting Factor_Subway": 2.11e-05,
+        "Commuting Factor_Bus": 5.64419e-05,
+        "Commuting Factor_Taxi": 0.000112633
+    },
+    "Changi": {
+        "Commuting Factor_Subway": 1.83243e-05,
+        "Commuting Factor_Bus": 4.90868e-05,
+        "Commuting Factor_Taxi": 9.7956e-05
+    },
+    "Bedok": {
+        "Commuting Factor_Subway": 1.82e-05,
+        "Commuting Factor_Bus": 4.86466e-05,
+        "Commuting Factor_Taxi": 9.70775e-05
+    },
+    "Newton": {
+        "Commuting Factor_Subway": 1.5777e-05,
+        "Commuting Factor_Bus": 4.2263e-05,
+        "Commuting Factor_Taxi": 8.43387e-05
+    },
+    "Kallang": {
+        "Commuting Factor_Subway": 1.56858e-05,
+        "Commuting Factor_Bus": 4.20188e-05,
+        "Commuting Factor_Taxi": 8.38512e-05
+    },
+    "Tanglin": {
+        "Commuting Factor_Subway": 1.39353e-05,
+        "Commuting Factor_Bus": 3.73296e-05,
+        "Commuting Factor_Taxi": 7.44936e-05
+    },
+    "Rochor": {
+        "Commuting Factor_Subway": 1.06784e-05,
+        "Commuting Factor_Bus": 2.86052e-05,
+        "Commuting Factor_Taxi": 5.70835e-05
+    },
+    "Bukit Merah": {
+        "Commuting Factor_Subway": 6.93e-05,
+        "Commuting Factor_Bus": 0.000185599,
+        "Commuting Factor_Taxi": 0.000370375
+    },
+    "Bukit Timah": {
+        "Commuting Factor_Subway": 4.17e-05,
+        "Commuting Factor_Bus": 0.000111812,
+        "Commuting Factor_Taxi": 0.000223129
+    },
+    "Bishan": {
+        "Commuting Factor_Subway": 4.03e-05,
+        "Commuting Factor_Bus": 0.000107918,
+        "Commuting Factor_Taxi": 0.000215358
+    },
+    "Choa Chu Kang": {
+        "Commuting Factor_Subway": 2.9e-05,
+        "Commuting Factor_Bus": 7.76578e-05,
+        "Commuting Factor_Taxi": 0.000154971
+    },
+    "Novena": {
+        "Commuting Factor_Subway": 8.42e-05,
+        "Commuting Factor_Bus": 0.000225616,
+        "Commuting Factor_Taxi": 0.000450232
+    },
+    "Bukit Panjang": {
+        "Commuting Factor_Subway": 9.62603e-06,
+        "Commuting Factor_Bus": 2.5786e-05,
+        "Commuting Factor_Taxi": 5.14577e-05
+    },
+    "River Valley": {
+        "Commuting Factor_Subway": 0.001530402,
+        "Commuting Factor_Bus": 0.004099611,
+        "Commuting Factor_Taxi": 0.00818104
+    },
+    "Clementi": {
+        "Commuting Factor_Subway": 1.22183e-05,
+        "Commuting Factor_Bus": 3.27301e-05,
+        "Commuting Factor_Taxi": 6.5315e-05
+    },
+    "Sengkang": {
+        "Commuting Factor_Subway": 1.89664e-05,
+        "Commuting Factor_Bus": 5.08068e-05,
+        "Commuting Factor_Taxi": 0.000101388
+    },
+    "Southern Islands": {
+        "Commuting Factor_Subway": 6.45763e-05,
+        "Commuting Factor_Bus": 0.000172986,
+        "Commuting Factor_Taxi": 0.000345204
+    },
+    "Yishun": {
+        "Commuting Factor_Subway": 6.95872e-06,
+        "Commuting Factor_Bus": 1.86409e-05,
+        "Commuting Factor_Taxi": 3.71991e-05
+    }
+}

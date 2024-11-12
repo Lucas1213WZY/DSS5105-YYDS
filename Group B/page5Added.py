@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 from dash import dash_table
 import folium
 from dash_extensions import BeforeAfter
+from dash import callback_context
 import dash_leaflet as dl
 import base64
 import plotly.graph_objects as go
@@ -16,12 +17,27 @@ import folium
 from dash.exceptions import PreventUpdate
 from datetime import datetime
 from structured_feedback_handler import StructuredFeedbackHandler  # Import the feedback handler class
+
 import json
 import openai
 import numpy as np
 from plotly.subplots import make_subplots
+import pickle
+from utils.validator_final import GreenMarkValidator
 
 
+from pathlib import Path
+
+# Load the commuting factors JSON file from the assets directory
+assets_path = Path('./assets/commuting_factors.json')
+with open(assets_path) as f:
+    commuting_factors = json.load(f)
+
+# Define a global variable for storing selected commuting factors
+selected_commuting_factors = {}
+
+
+openai.api_key = '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'
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server
@@ -306,12 +322,14 @@ file_upload_layout = html.Div([
                     dbc.Button("Proceed to Data Quality Check", id="next-button-file", color="success", size="md", className="mt-4",
                                style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'}, href='/page-2')
                 ], width=3),
-            ])
+            ], justify="center")
         ])
     ])
 ])
 
 UPLOAD_DIRECTORY = "./datasets"
+if not os.path.exists(UPLOAD_DIRECTORY):
+    os.makedirs(UPLOAD_DIRECTORY)
 global_data = {}
 
 @app.callback(
@@ -411,6 +429,7 @@ style_without_error = {
     'border': '1px solid #ced4da'
 }
 manual_input_layout = dbc.Container([
+    dcc.Store(id='commuting-factors-store'), 
     html.Div(
         html.Img(
             src='./assets/teamlogo.png',
@@ -503,22 +522,6 @@ manual_input_layout = dbc.Container([
                     dbc.Row([
                         dbc.Col([
                             html.Div([
-                                html.H5("Size (sqft)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
-                                html.I(className="fas fa-info-circle", id="size-info-icon",
-                                       style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
-                            ], style={'position': 'relative'}),
-                            dcc.Input(id='size-input', type='number', placeholder="Enter Building Size",
-                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
-                            html.Div(id='size-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
-                        ], width=6),
-                        dbc.Tooltip(
-                            "Enter the size of the building in sqft.",
-                            target="size-info-icon",
-                            placement="top",
-                            delay={"show": 1000, "hide": 100}
-                        ),
-                        dbc.Col([
-                            html.Div([
                                 html.H5("Number of Employees", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
                                 html.I(className="fas fa-info-circle", id="employees-info-icon",
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
@@ -532,8 +535,77 @@ manual_input_layout = dbc.Container([
                             target="employees-info-icon",
                             placement="top",
                             delay={"show": 1000, "hide": 100}
+                        ),
+                        dbc.Col([
+                            html.Div([
+                                html.H5("Size (sqft)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                                html.I(className="fas fa-info-circle", id="size-info-icon",
+                                       style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
+                            ], style={'position': 'relative'}),
+                            dcc.Input(id='size-input', type='number', placeholder="Enter Building Size",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='size-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
+                        ], width=6),
+                        dbc.Tooltip(
+                            "Enter the size of the building in sqft.",
+                            target="size-info-icon",
+                            placement="top",
+                            delay={"show": 1000, "hide": 100}
                         )
-                    ], className="mb-4")
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div([
+                                html.H5("Office Area (%)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                                html.I(className="fas fa-info-circle", id="office-info-icon",
+                                       style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
+                            ], style={'position': 'relative'}),
+                            dcc.Input(id='office-input', type='number', placeholder="Enter Building Office Area",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='office-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
+                        ], width=6),
+                        dbc.Tooltip(
+                            "Enter the percentage (%) of the building area used as office space. (e.g., if 50% of the building is used as office space, enter 50).",
+                            target="office-info-icon",
+                            placement="top",
+                            delay={"show": 1000, "hide": 100}
+                        ),
+                        dbc.Col([
+                            html.Div([
+                                html.H5("Retail Area(%)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                                html.I(className="fas fa-info-circle", id="retail-info-icon",
+                                       style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
+                            ], style={'position': 'relative'}),
+                            dcc.Input(id='retail-input', type='number', placeholder="Enter Building Retail Area",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='retail-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
+                        ], width=6),
+                        dbc.Tooltip(
+                            "Enter the percentage (%) of the building area used as retail space. (e.g., if 50% of the building is used as retail space, enter 50).",
+                            target="retail-info-icon",
+                            placement="top",
+                            delay={"show": 1000, "hide": 100}
+                        )
+                    ], className="mb-4"),
+                    dbc.Row([
+                        dbc.Col([
+                            html.Div([
+                                html.H5("Parking Area (%)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                                html.I(className="fas fa-info-circle", id="parking-info-icon",
+                                       style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
+                            ], style={'position': 'relative'}),
+                            dcc.Input(id='parking-input', type='number', placeholder="Enter Building Parking Area",
+                                      style={'width': '100%', 'padding': '10px', 'borderRadius': '10px', 'border': '1px solid #ced4da'}),
+                            html.Div(id='parking-error', style={'color': 'red', 'fontSize': '14px', 'marginTop': '5px'}) 
+                        ], width=6),
+                        dbc.Tooltip(
+                            "Enter the percentage (%) of the building area used as parking space. (e.g., if 50% of the building is used as parking space, enter 50).",
+                            target="parking-info-icon",
+                            placement="top",
+                            delay={"show": 1000, "hide": 100}
+                        )
+                    ], className="mb-4"),
+    
                 ])
             ], className="mb-4", style={'border': '1px solid #ced4da', 'borderRadius': '10px', "box-shadow": "2px 0 8px rgba(0, 0, 0, 0.3)"}),
 
@@ -764,6 +836,7 @@ manual_input_layout = dbc.Container([
     ] + [
         Output(f"{input_id}", "style") for input_id in [
             "region-dropdown", "building-input", "zip-input", "year-input", "size-input", "employee-input",
+            "office-input","retail-input","parking-input",
             "energy-input", "water-input", "waste-input", "subway-commute-input", "bus-commute-input",
             "taxi-commute-input", "business-travel-flight-input", "business-travel-hotel-input",
             "business-procurement-air-freight-input", "business-procurement-diesel-truck-input",
@@ -778,6 +851,9 @@ manual_input_layout = dbc.Container([
         State("year-input", "value"),
         State("size-input", "value"),
         State("employee-input", "value"),
+        State("office-input", "value"),
+        State("retail-input", "value"),
+        State("parking-input", "value"),
         State("energy-input", "value"),
         State("water-input", "value"),
         State("waste-input", "value"),
@@ -798,6 +874,7 @@ def validate_and_store_form(n_clicks, *input_values):
     # Define the names of the fields to match input values
     field_names = [
         "Region", "Building Name", "Zip Code", "Year", "Size", "Number of Employees",
+        "Office Area", "Retail Area", "Parking Area",
         "Energy", "Water", "Waste", "Subway Commute", "Bus Commute", "Taxi Commute",
         "Business Travel Flight", "Business Travel Hotel", "Air Freight", "Diesel Truck Freight",
         "Electric Truck Freight"
@@ -819,15 +896,12 @@ def validate_and_store_form(n_clicks, *input_values):
 
     # Check for errors and set navigation URL only if all fields are valid
     error_message = error_messages[0] if error_messages else ""
-    href = "/page-2" if not error_message else None
+    href = "/page-3" if n_clicks and not error_message else None
 
     # Log or print the stored data dictionary for debugging/confirmation
     print("Stored Data Dictionary:", stored_data)  # This can be logged or printed to console
 
     return [error_message, href] + styles
-
-
-
 
 # Callback for input error data
 # 1. Zip Code Validation (6-digit Singapore postal code)
@@ -884,6 +958,42 @@ def validate_employees(employees):
         return ""  # No error if no input
     if employees < 1 or employees > 50000:
         return "Invalid number. Please enter a realistic number of employees (1–50,000)."
+    return ""  # No error if within the range
+
+# Office Area Validation
+@app.callback(
+    Output('office-error', 'children'),
+    Input('office-input', 'value')
+)
+def validate_office_area(office_area):
+    if office_area is None:
+        return ""  # No error if no input
+    if office_area < 0 or office_area > 100:
+        return "Invalid percentage. Please enter a realistic percentage (0-100)."
+    return ""  # No error if within the range
+
+# Retail Area Validation
+@app.callback(
+    Output('retail-error', 'children'),
+    Input('retail-input', 'value')
+)
+def validate_retail_area(retail_area):
+    if retail_area is None:
+        return ""  # No error if no input
+    if retail_area < 0 or retail_area > 100:
+        return "Invalid percentage. Please enter a realistic percentage (0-100)."
+    return ""  # No error if within the range
+
+# Parking Area Validation
+@app.callback(
+    Output('parking-error', 'children'),
+    Input('parking-input', 'value')
+)
+def validate_parking_area(parking_area):
+    if parking_area is None:
+        return ""  # No error if no input
+    if parking_area < 0 or parking_area > 100:
+        return "Invalid percentage. Please enter a realistic percentage (0-100)."
     return ""  # No error if within the range
 
 # 5. Energy Consumption Validation (1–100,000,000 kWh)
@@ -999,11 +1109,52 @@ def use_stored_data(stored_data):
     
     # Use stored_data directly as a dictionary
     # For example, here we just format and display the entire dictionary
-    dash_table = stored_data
+    global_data['manual_data'] = stored_data
 
     
     # Now you have access to the entire dictionary and can use it as needed
-    return f"Stored Data: {dash_table}"
+    return f"Stored Data: {global_data['manual_data']}"
+
+@app.callback(
+    Output('commuting-factors-store', 'data'),
+    Input('region-dropdown', 'value')
+)
+def update_commuting_factors(region):
+    # Fetch the commuting factors for the selected region
+    if region in commuting_factors:
+        return commuting_factors[region]
+    return None  # Return None if no valid region is selected
+
+@app.callback(
+    Output('output-calculation', 'children'),
+    [
+        Input('subway-commute-input', 'value'),
+        Input('bus-commute-input', 'value'),
+        Input('taxi-commute-input', 'value')
+    ],
+    State('commuting-factors-store', 'data')
+)
+def calculate_commuting_emissions(subway_value, bus_value, taxi_value, commuting_factors):
+    if not commuting_factors:
+        return "Commuting factors not loaded."
+
+    if subway_value is None or bus_value is None or taxi_value is None:
+        return "Please fill in all commute distances."
+
+    # Assuming the data format is correct, fetch and calculate the commuting emissions
+    subway_factor = commuting_factors.get("Commuting Factor_Subway", 0)
+    bus_factor = commuting_factors.get("Commuting Factor_Bus", 0)
+    taxi_factor = commuting_factors.get("Commuting Factor_Taxi", 0)
+
+    # Calculate emissions
+    subway_emission = subway_value * subway_factor
+    bus_emission = bus_value * bus_factor
+    taxi_emission = taxi_value * taxi_factor
+
+    total_emission = subway_emission + bus_emission + taxi_emission
+
+    # Return a formatted result
+    return f"Total commuting emissions: {total_emission:.2f} units"
 
 
 
@@ -1016,84 +1167,97 @@ page_2_layout = dbc.Container([
             style={
                 'width': '220px',
                 'height': 'auto',
+                'marginTop': '10px'
             }
         ),
         id="page-2-logo-wrapper",
         style={
             'position': 'absolute',
-            'top': '55px',
-            'right': '40px',
+            'top': '40px',
+            'right': '55px',
             'transition': 'right 0.3s ease'
         }
     ),
-    # Main title, centered and bold, with margin to add space from navbar
+    # Title Section
     dbc.Row([
         dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis",
                         className="text-center",
-                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
+                        style={"fontWeight": "bold", "marginTop": "80px", "marginBottom": "30px", "color": "#333", "fontFamily": "Montserrat, sans-serif"}))
     ]),
 
-    # Data Table Overview Section
+    # Data Overview Table Section
     dbc.Row([
-        dbc.Col(html.H5("Data Overview Table", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.H5("Data Overview Table", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
     dbc.Row([
         dbc.Col(dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'}), width=12),
     ], className="mb-5"),
+
+    # Missing Data Summary Section
     dbc.Row([
         dbc.Col([
-            html.H5("Missing Data Summary"),
+            html.H5("Missing Data Summary", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"}),
             dash_table.DataTable(id='missing-data-table', style_table={'overflowX': 'auto'})
         ])
     ], className="mt-5"),
+
+    # Visualization of Data Completeness
     dbc.Row([
         dbc.Col([
-            html.H5("Visualization of Data Completeness"),
-            dcc.Graph(id='completeness-graph'),
+            html.H5("Visualization of Data Completeness", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"}),
+            dcc.Graph(id='completeness-graph', style={"height": "400px"})
         ]),
     ], className="mt-5"),
+
+    # Placeholder for User Actions
     dbc.Row([
-        dbc.Col(html.Div(id='action-prompt'), className="mt-5")  # Placeholder for user actions
-    ]),
-    dbc.Row([
-        dbc.Col([
-            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1'),
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="primary", href='/page-3', className="ml-2")
-        ], className="mt-4 mb-5", width=6),
+        dbc.Col(html.Div(id='action-prompt'), className="mt-5")
     ]),
 
-    # Exploratory Data Analysis (EDA) Section
+    # Navigation Buttons
     dbc.Row([
-        dbc.Col(html.H5("Exploratory Data Analysis", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col([
+            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1',
+                       style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
+        ], width=3),
+        dbc.Col([
+            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3',
+                       style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
+        ], width=3),
+    ], justify="center", className="mt-4 mb-5"),
+
+    # EDA Section Header
+    dbc.Row([
+        dbc.Col(html.H5("Exploratory Data Analysis", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
 
     # Summary Statistics Section
     dbc.Row([
-        dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
     dbc.Row([
         dbc.Col(dash_table.DataTable(id='summary-statistics-table', style_table={'overflowX': 'auto'}), width=12)
     ], className="mb-5"),
 
-    # Compact Histograms Section with Bound Plot Areas
+    # Histograms Section
     dbc.Row([
-        dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
     dbc.Row([
-        dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)  # Adjust height if needed
+        dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)
     ], className="mt-5"),
 
-    # Compact Boxplots Section with Bound Plot Areas
+    # Boxplots Section
     dbc.Row([
-        dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600"})),
+        dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
     dbc.Row([
-        dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)  # Adjust height if needed
+        dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)
     ], className="mt-5"),
 ], fluid=True)
 
@@ -1255,59 +1419,117 @@ def display_eda_visualizations(pathname):
     return go.Figure(), go.Figure()
 
 
+selected_commuting_factors = {}
+
+# Define the dictionary with commuting factors data
+commuting_factors = {
+    "Geylang": {
+        "Commuting Factor_Subway": 0.036729895,
+        "Commuting Factor_Bus": 0.098391308,
+        "Commuting Factor_Taxi": 0.196346264
+    },
+    # ... add all other regions here ...
+    "Yishun": {
+        "Commuting Factor_Subway": 6.95872e-06,
+        "Commuting Factor_Bus": 1.86409e-05,
+        "Commuting Factor_Taxi": 3.71991e-05
+    }
+}
+
+# Function to retrieve commuting factors for a specific region and store them globally
+def set_commuting_factors(region):
+    global selected_commuting_factors
+    if region in commuting_factors:
+        selected_commuting_factors = commuting_factors[region]
+    else:
+        selected_commuting_factors = {
+            "Commuting Factor_Subway": 0,
+            "Commuting Factor_Bus": 0,
+            "Commuting Factor_Taxi": 0
+        }
+    return selected_commuting_factors  # Optionally return for immediate use
 
 
 
+# need to process the paths for the data
+df = pd.read_csv('./datasets/merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
+df['YearDate'] = pd.to_datetime(df['Year'].astype(str) + '-01-01')
 
+def ghg_predictions(data):
+    with open('../Group A/prediction models/scaler_xgb.pkl', 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
 
-df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
-df['YearDate'] = np.array(pd.to_datetime(df['Year'].astype('str') + '-01-01'))
+    with open('../Group A/prediction models/tuned_xgb_model.pkl', 'rb') as model_file:
+        tuned_xgb_model = pickle.load(model_file)
+
+    # Step 2: Apply log transformation to match training preprocessing
+    new_data_df= np.log1p(data[['Energy', 'Waste', 'Water', 'Transportation']])
+    # Step 3: Standardize the new data using the scaler
+    new_data_scaled = scaler.transform(new_data_df)
+
+    # Step 6: Predict GHG_Total using the trained model
+    predicted_ghg_log = tuned_xgb_model.predict(new_data_scaled)
+
+    # Step 7: Inverse log transform to get the original GHG_Total value
+    predicted_ghg_total = np.expm1(predicted_ghg_log)
+    df['total_ghg'] = predicted_ghg_total
+    df['ghg_intensity_predicted'] = df['total_ghg'] / df['GFA']
+    # Create an instance of the validator
+    validator = GreenMarkValidator()
+
+    # Predict Green Mark levels for the 'ghg_intensity' column
+    if 'ghg_intensity_predicted' not in data.columns:
+        raise KeyError("Column 'ghg_intensity' not found in the DataFrame.")
+    results_df = validator.predict_green_mark(df['ghg_intensity_predicted'])
+
+    # Add the results as new columns in the original DataFrame
+    df[['predicted_greenmarks', 'threshold']] = results_df[['predicted_level', 'threshold']]
+    # Step 8: Output the prediction results
+
+ghg_predictions(df)
+f"df.head()"
+
 
 
 # Define layout for Page 3 - Model Running and Visualization
 page_3_layout = dbc.Container([
-     html.Div(
+    # Logo and Header
+    html.Div(
         html.Img(
             src='./assets/teamlogo.png',
-            style={
-                'width': '220px',
-                'height': 'auto',
-            }
+            style={'width': '220px', 'height': 'auto'}
         ),
         id="page-3-logo-wrapper",
-        style={
-            'position': 'absolute',
-            'top': '55px',
-            'right': '40px',
-            'transition': 'right 0.3s ease'
-        }
+        style={'position': 'absolute', 'top': '55px', 'right': '40px', 'transition': 'right 0.3s ease'}
     ),
-    # Main title for Model Results and Benchmarking
+    
     dbc.Row([
         dbc.Col(html.H1("Model Results and Benchmarking",
                         className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
 
-    # Dropdown for selecting building names
+    # Dropdown for Building Selection
     dbc.Row([
         dbc.Col(html.H5("Select Building Name", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Dropdown(
             id='dropdown-selection',
             options=[{'label': name, 'value': name} for name in df["Building Name"].unique()],
-            value='Building Name',
+            value=None,
             style={"width": "100%"}
         ), width=6),
     ], className="mb-5"),
-
+    
     # Section for Award and Year Trend Graphs
     dbc.Row([
         dbc.Col(html.H5("Model Results Visualizations", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Graph(id='award'), width=6),
         dbc.Col(dcc.Graph(id='year_trend_line'), width=6),
@@ -1318,10 +1540,25 @@ page_3_layout = dbc.Container([
         dbc.Col(html.H5("Additional Analysis", style={"fontWeight": "600"})),
         dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
     ], className="mt-3 mb-2"),
+    
     dbc.Row([
         dbc.Col(dcc.Graph(id='violin'), width=6),
         dbc.Col(dcc.Graph(id='pie_1'), width=3),
         dbc.Col(dcc.Graph(id='pie_2'), width=3),
+    ], className="mb-5"),
+
+    # Image Section for visual assets
+    dbc.Row([
+        dbc.Col(html.H5("Transportation Contribution by Region Heatmaps", style={"fontWeight": "600"})),
+        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
+    ], className="mt-3 mb-2"),
+
+    dbc.Row([
+        dbc.Col(html.Img(src="assets/2.png", style={"width": "100%", "height": "auto"}), width=12),
+    ], className="mb-3"),
+
+    dbc.Row([
+        dbc.Col(html.Img(src="assets/1.png", style={"width": "100%", "height": "auto"}), width=12),
     ], className="mb-5"),
 
     # Button to navigate to the next page
@@ -1333,59 +1570,145 @@ page_3_layout = dbc.Container([
     ], justify="center", className="mt-4 mb-5"),
 ], fluid=True)
 
-
+# Sidebar adjustment callback
 @app.callback(
     Output("page-3-logo-wrapper", "style"),
-    [Input("toggle-button", "n_clicks")],
-    [State("page-3-logo-wrapper", "style")]
+    Input("toggle-button", "n_clicks"),
+    State("page-3-logo-wrapper", "style")
 )
 def adjust_logo_position(n_clicks, current_style):
     if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
         current_style["right"] = "0px"  # Adjust to match sidebar width
     else:
-        # Reset logo position when sidebar is hidden
         current_style["right"] = "40px"
     return current_style
 
-
-# Callbacks for the visualizations on Page 3
-# Line Chart
+# Line Chart Callback - Year Trend
 @app.callback(
     Output('year_trend_line', 'figure'),
     Input('dropdown-selection', 'value')
 )
 def update_line_chart(value):
-    year_trend_df = df.groupby('YearDate').agg({'GHG_Intensity': 'mean'}).reset_index()
-    fig = px.line(year_trend_df, x='YearDate', y='GHG_Intensity', title="Greenhouse Gas Emissions Intensity Over Time",
-                  labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
+    year_trend_df = df.groupby('YearDate').agg({'ghg_intensity_predicted': 'mean'}).reset_index()
+    fig = px.line(year_trend_df, x='YearDate', y='ghg_intensity_predicted', 
+                  title="Greenhouse Gas Emissions Intensity Over Time",
+                  labels={"ghg_intensity_predicted": "Greenhouse Gas Emissions Intensity"})
     fig.update_traces(line=dict(color="#365E32"))
     return fig
 
-# Bubble Chart
+# award distribution
 @app.callback(
     Output('award', 'figure'),
     Input('dropdown-selection', 'value')
 )
-def update_bubble_chart(value):
-    bubble_data = df.groupby('Award').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
-    x = [0, 1, 2, 3]
-    y = [2, 2, 2, 2]
-    bubble_data['x'] = x
-    bubble_data['y'] = y
-    fig = go.Figure(data=[go.Scatter(
-        x=x, y=y, mode='markers+text',
-        marker=dict(size=bubble_data["unique_building_count"], opacity=0.6, color="#365E32"),
-        text=bubble_data["Award"],
-        textposition="top center",
-        hovertext=bubble_data["unique_building_count"]
+def update_bar_chart(value):
+    # Group data by 'predicted_greenmarks' and count unique buildings
+    bar_data = df.groupby('predicted_greenmarks').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
+    
+    # Define yellow and green color mapping for each Green Mark level
+    color_map = {
+        'certified': '#a8d08d',   # Light Green
+        'gold': '#ffd966',        # Yellow
+        'goldplus': '#e6b800',    # Darker Yellow/Gold
+        'platinum': '#4b830d'     # Dark Green
+    }
+    
+    # Assign colors to each bar based on the level
+    colors = [color_map.get(level.lower(), '#333333') for level in bar_data['predicted_greenmarks']]
+
+    # Create the bar chart
+    fig = go.Figure(data=[go.Bar(
+        x=bar_data['predicted_greenmarks'],
+        y=bar_data['unique_building_count'],
+        text=bar_data['unique_building_count'],
+        textposition='auto',
+        marker=dict(color=colors),
+        hoverinfo='text',
+        hovertext=[f"{level}: {count} buildings" for level, count in zip(bar_data['predicted_greenmarks'], bar_data['unique_building_count'])]
     )])
-    fig.update_layout(title="Awards Distribution", showlegend=False,
-                      xaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False),
-                      yaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False))
+
+    # Apply a theme and layout customization with Dash canvas background
+    fig.update_layout(
+        title=dict(
+            text="Awards Distribution",
+            font=dict(size=20, family="Arial, sans-serif", color="#333333"),
+            x=0.5
+        ),
+        xaxis=dict(
+            title="Green Mark Level",
+            titlefont=dict(size=16, family="Arial, sans-serif", color="#333333"),
+            showgrid=False,
+            zeroline=False,
+            tickfont=dict(size=14, color="#333333"),
+            tickangle=0
+        ),
+        yaxis=dict(
+            title="Unique Building Count",
+            titlefont=dict(size=16, family="Arial, sans-serif", color="#333333"),
+            showgrid=True,
+            gridcolor="rgba(200, 200, 200, 0.3)",  # Light grey grid lines
+            zeroline=False,
+            tickfont=dict(size=14, color="#333333")
+        ),
+        plot_bgcolor="#f9f9f9",  # Set to the same background color as the Dash canvas
+        paper_bgcolor="#f9f9f9",  # Set to the same background color as the Dash canvas
+        showlegend=False,
+        margin=dict(l=40, r=40, t=50, b=40)  # Padding for a balanced layout
+    )
+
     return fig
 
-# Pie Chart - Scope Emissions
+# Violin Chart Callback - GHG Intensity
+@app.callback(
+    Output('violin', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_violin_chart(selected_building):
+    # Apply log transformation
+    df['GHG_Total_Log'] = np.log(df['GHG_Total'] + 1)
+    
+    # Create a violin plot with swarm points
+    fig = go.Figure()
+    fig.add_trace(go.Violin(
+        x=df['GHG_Total_Log'],
+        name='GHG Emissions (Log Transformed)',
+        box_visible=True,
+        meanline_visible=True,
+        fillcolor='lightblue',
+        line_color='darkblue',
+        opacity=0.6,
+        orientation='h'
+    ))
+    fig.add_trace(go.Scatter(
+        y=['GHG Emissions (Log Transformed)'] * len(df),
+        x=df['GHG_Total_Log'],
+        mode='markers',
+        marker=dict(size=6, color='rgba(0, 128, 0, 0.5)', symbol='circle')
+    ))
+
+    # Highlight selected building if valid
+    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
+        highlight_df = df[df['Building Name'] == selected_building]
+        fig.add_trace(go.Scatter(
+            y=['GHG Emissions (Log Transformed)'] * len(highlight_df),
+            x=highlight_df['GHG_Total_Log'],
+            mode='markers',
+            marker=dict(size=14, color='orange', symbol='diamond')
+        ))
+
+    fig.update_layout(
+        title="Horizontal Violin Plot with Swarm Points for GHG Emissions (Log Transformed)",
+        yaxis_title='Building',
+        xaxis_title='Log of Total GHG Emissions (ton)',
+        plot_bgcolor='rgba(240, 240, 240, 1)',
+        font=dict(size=14),
+        xaxis=dict(showgrid=True, gridcolor='lightgrey'),
+        yaxis=dict(showgrid=True, gridcolor='lightgrey'),
+        showlegend=False
+    )
+    return fig
+
+# Pie Chart Callback - Scope Emissions
 @app.callback(
     Output('pie_2', 'figure'),
     Input('dropdown-selection', 'value')
@@ -1399,7 +1722,7 @@ def update_pie_scope(value):
     fig.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
     return fig
 
-# Pie Chart - Water and Waste
+# Pie Chart Callback - Water and Waste
 @app.callback(
     Output('pie_1', 'figure'),
     Input('dropdown-selection', 'value')
@@ -1413,132 +1736,210 @@ def update_pie_water_waste(value):
     fig.update_traces(texttemplate='%{label}: %{percent:.2%}', textposition='outside')
     return fig
 
-# Violin Chart - GHG Intensity
-@app.callback(
-    Output('violin', 'figure'),
-    Input('dropdown-selection', 'value')
-)
-def update_violin_chart(value):
-    melt_cols = ['Building Name', "GHG_Intensity"]
-    h_data = df[melt_cols]
-    fig = px.violin(h_data, x="GHG_Intensity", box=True, points='all', title="GHG Intensity Violin Plot",
-                    labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
-    fig.update_traces(marker=dict(color="green"))
-    return fig
 
 
 # Define layout for Page 4 - Report Generation and Chatbot
-page_4_layout = dbc.Container([
-        html.Div(
-        html.Img(
-            src='./assets/teamlogo.png',
-            style={
-                'width': '220px',
-                'height': 'auto',
-            }
-        ),
-        id="page-4-logo-wrapper",
+
+# Open AI
+def generate_response(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=150, 
+            temperature=0.7  
+        )
+        return response.choices[0].message['content'].strip()
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+
+# Function to create chat bubbles with typing effect
+def create_chat_bubble(content, is_user=False, is_typing=False):
+    if is_typing:
+        # Display typing animation
+        content = html.Div([
+            html.Span(".", className="dot"),
+            html.Span(".", className="dot"),
+            html.Span(".", className="dot")
+        ], className="typing-animation")
+    return html.Div(
+        content,
         style={
-            'position': 'absolute',
-            'top': '55px',
-            'right': '40px',
-            'transition': 'right 0.3s ease'
+            'backgroundColor': '#d1e7f3' if is_user else '#ffffff',  # User bubble is light blue, bot bubble is white
+            'color': '#333',
+            'padding': '12px 18px',
+            'borderRadius': '18px',
+            'maxWidth': '70%',
+            'alignSelf': 'flex-end' if is_user else 'flex-start',
+            'marginBottom': '10px',
+            'textAlign': 'left' if not is_user else 'right',
+            'lineHeight': '1.6',
+            'fontSize': '16px',
+            'display': 'inline-block' if not is_typing else 'flex',
+            'alignItems': 'center' if is_typing else 'initial',
+            'border': '1.5px solid #b0d4e3',  # Slightly thicker border
+            'boxShadow': '0 2px 8px rgba(0, 0, 0, 0.1)',  # Subtle shadow for depth
+            'fontFamily': 'Montserrat, sans-serif'
         }
-    ),
+    )
+
+
+page_4_layout = dbc.Container([
+    # Title
     dbc.Row([
         dbc.Col(html.H1("Generate Report and Chat Assistance",
                         className="text-center",
                         style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
     ]),
+
+    # Centered Report Generation Section
     dbc.Row([
         dbc.Col([
-            html.H5("Generate HTML Report"),
-            dbc.Button("Download Report", id="report-button", color="secondary"),
+            html.H5("Generate HTML Report", style={"textAlign": "center"}),
+            dbc.Button("Download Report", id="report-button", color="secondary", style={
+                'width': '25%', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '16px', 'fontWeight': 'bold',
+                'margin': 'auto', 'display': 'block'
+            }),
             dcc.Download(id="download-report")
-        ], width=4),
-    ], className="mb-5"),
+        ], width=12, className="mb-5", style={'textAlign': 'center'}),
+    ]),
+
+    # Chatbot Assistance Section
     dbc.Row([
         dbc.Col([
-            html.H5("Chatbot Assistance", className="mb-3"),
+            html.H5("Chatbot Assistance", className="mb-3", style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}),
             html.Div([
-                dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
-                    'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'border': '1px solid #ced4da', 'marginBottom': '10px'
+                html.Div([
+                    dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
+                        'width': '85%',
+                        'padding': '12px',
+                        'borderRadius': '25px',
+                        'border': '2px solid #ced4da',  # Slightly thicker border
+                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.1)',  # Shadow for depth
+                        'marginBottom': '10px',
+                        'fontSize': '16px',
+                        'fontFamily': 'Montserrat, sans-serif'
+                    }),
+                    html.Button(html.I(className="fas fa-paper-plane"), id='send-button', n_clicks=0, style={
+                        'backgroundColor': '#1e88e5',
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': '50%',
+                        'padding': '10px',
+                        'marginLeft': '10px',
+                        'width': '40px',
+                        'height': '40px',
+                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'center'
+                    }),
+                    html.Button(
+                        html.I(className="fas fa-redo-alt"),  
+                        id="refresh-button",
+                        n_clicks=0,
+                        style={
+                            'backgroundColor': '#17a2b8',  
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '50%',
+                            'padding': '10px',
+                            'marginLeft': '10px',
+                            'width': '40px',
+                            'height': '40px',
+                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center'
+                    }),
+                ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
+                html.Div(id='chatbot-response', className="mt-3", style={
+                    'color': '#4a4a4a',
+                    'border': '1.5px solid #e9ecef',
+                    'borderRadius': '10px',
+                    'padding': '20px',
+                    'backgroundColor': '#f8f9fa',
+                    'minHeight': '200px',
+                    'fontSize': '16px',
+                    'lineHeight': '1.6',
+                    'display': 'flex',
+                    'flexDirection': 'column',
+                    'gap': '10px',
+                    'width': '80%',
+                    'margin': 'auto',
+                    'boxShadow': '0 2px 10px rgba(0, 0, 0, 0.1)'  # Subtle shadow for container
                 }),
-                html.Button('Send', id='send-button', n_clicks=0, style={
-                    'backgroundColor': '#17a2b8', 'color': 'white', 'border': 'none', 'borderRadius': '5px', 'padding': '8px 16px', 'marginBottom': '10px'
-                })
-            ], style={'display': 'flex', 'gap': '10px', 'flexDirection': 'column'}),
-            html.Div(id='chatbot-response', className="mt-3", style={
-                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-        ], width=6),
-    ]),
+                dcc.Interval(id="typing-interval-greeting", interval=3000, n_intervals=0, max_intervals=1),  # Greeting 3-second interval
+                dcc.Interval(id="typing-interval-response", interval=3000, n_intervals=0, max_intervals=1),  # Response 3-second interval
+                dcc.Interval(id="page-load-trigger", interval=1, n_intervals=0, max_intervals=1)  # Trigger on page load
+            ])
+        ], width=8, className="mb-5"),
+    ], className="justify-content-center"),
+
+    # Next Button to proceed
     dbc.Row([
         dbc.Col([
             dbc.Button("Next: Feedback Survey", id="go-to-page-5", color="success", href='/page-5', className="mt-4", style={
-                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold'
+                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold', 'fontSize': '16px'
             })
         ], width=3),
-    ], className="mt-5 mb-5")  # Add 'mb-5' to create extra space at the bottom
-])
+    ], justify="center", className="mt-5 mb-5"),
+], fluid=True)
 
 
-@app.callback(
-    Output("page-4-logo-wrapper", "style"),
-    [Input("toggle-button", "n_clicks")],
-    [State("page-4-logo-wrapper", "style")]
-)
-def adjust_logo_position(n_clicks, current_style):
-    if n_clicks and n_clicks % 2 != 0:  # Sidebar is visible
-        # Shift logo further to the right
-        current_style["right"] = "0px"  # Adjust to match sidebar width
-    else:
-        # Reset logo position when sidebar is hidden
-        current_style["right"] = "40px"
-    return current_style
 
-
-# Function to get chatbot response
-def get_chatbot_response(user_input):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_input}]
-        )
-        return response.choices[0].message["content"]
-    except Exception as e:
-        return f"Error: {e}"
-
-
-# Callback for chatbot response
 @app.callback(
     Output('chatbot-response', 'children'),
+    Output('typing-interval-greeting', 'n_intervals'),
+    Output('typing-interval-response', 'n_intervals'),
+    Input('page-load-trigger', 'n_intervals'),
     Input('send-button', 'n_clicks'),
-    State('chatbot-input', 'value')
+    Input('typing-interval-greeting', 'n_intervals'),
+    Input('typing-interval-response', 'n_intervals'),
+    Input('refresh-button', 'n_clicks'),
+    State('chatbot-input', 'value'),
+    State('chatbot-response', 'children')
 )
-def update_chatbot_response(n_clicks, user_input):
-    if n_clicks > 0 and user_input:
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant specialized in GHG emissions."},
-                    {"role": "user", "content": user_input}
-                ],
-                max_tokens=150,
-                temperature=0.7
-            )
-            generated_response = response.choices[0].message.content.strip()
-            return html.Div(generated_response, style={
-                'color': 'gray', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
-                'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-        except Exception as e:
-            return html.Div(f"Error: {str(e)}", style={
-                'color': 'red', 'border': '1px solid #e9ecef', 'borderRadius': '5px',
-                'padding': '15px', 'backgroundColor': '#f8f9fa'
-            })
-    return ""
+
+def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_intervals, response_typing_intervals, refresh_clicks, user_input, existing_chat):
+    ctx = callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Display initial typing animation on page load
+    if trigger_id == 'page-load-trigger' and page_load_trigger == 1:
+        typing_animation = create_chat_bubble("", is_typing=True)
+        return [typing_animation], 0, dash.no_update  # Start typing interval for greeting message
+    
+
+    # Show the greeting message after typing animation ends
+    if trigger_id == 'typing-interval-greeting' and greeting_typing_intervals == 1:
+        greeting_message = create_chat_bubble("Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!", is_user=False)
+        return [greeting_message], dash.no_update, dash.no_update
+    
+    # Refresh
+    if trigger_id == 'refresh-button' and refresh_clicks > 0:
+        greeting_message = create_chat_bubble(
+            "Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!",
+            is_user=False
+        )
+        return [greeting_message], 0, 0
+    
+    # Show typing animation for user-submitted question
+    if trigger_id == 'send-button' and send_clicks > 0 and user_input:
+        user_bubble = create_chat_bubble(user_input, is_user=True)
+        typing_animation = create_chat_bubble("", is_typing=True)
+        existing_chat = (existing_chat or []) + [user_bubble, typing_animation]
+
+        bot_response_content = generate_response(user_input)
+        bot_response = create_chat_bubble(bot_response_content, is_user=False)
+
+        return existing_chat[:-1] + [bot_response], dash.no_update, dash.no_update
+
+    raise dash.exceptions.PreventUpdate
 
 
 
@@ -1762,7 +2163,7 @@ page_5_layout = dbc.Container([
                        style={'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontSize': 'bold', 
                               'fontWeight': 'bold'})
         ], width=3)
-    ], className="mt-3 mb-5")
+    ], justify="center", className="mt-3 mb-5")
 ])
 
 @app.callback(

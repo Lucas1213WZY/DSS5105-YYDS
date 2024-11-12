@@ -1374,15 +1374,6 @@ def display_eda_visualizations(pathname):
 
 
 
-
-
-
-df = pd.read_csv('./merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
-df['YearDate'] = np.array(pd.to_datetime(df['Year'].astype('str') + '-01-01'))
-
-
-
-
 # Define layout for Page 3 - Model Running and Visualization
 df = pd.read_csv('merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
 df['YearDate'] = pd.to_datetime(df['Year'].astype('str') + '-01-01')

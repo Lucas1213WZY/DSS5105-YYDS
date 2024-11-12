@@ -1,0 +1,11 @@
+{
+    "Business Travel": {
+        "Business Travel-Hotel": 0.178,
+        "Business Travel - Flight": 0.694
+    },
+    "Business Procurement": {
+        "Airline": 1.193,
+        "Diesel Truck": 0.053,
+        "Electric Truck": 0.024
+    }
+}

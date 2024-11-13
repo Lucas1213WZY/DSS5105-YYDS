@@ -25,7 +25,7 @@ from plotly.subplots import make_subplots
 import pickle
 from utils.validator_final import GreenMarkValidator
 
-from utils.helper_functions import calculate_business_emissions
+#from utils.helper_functions import calculate_business_emissions
 from pathlib import Path
 
 # Load the commuting factors JSON file from the assets directory
@@ -432,11 +432,14 @@ style_without_error = {
     'border': '1px solid #ced4da'
 }
 manual_input_layout = dbc.Container([
-    dcc.Store(id='commuting-factors-store'), 
+    dcc.Store(id='commuting-factors-store'),
+    dcc.Store(id='manual-data-store'), 
     dcc.Store(id='commuting-emission-results-store', storage_type='memory'),
     dcc.Store(id='business-travel-store'),
     dcc.Store(id='business-procurement-store'),
     dcc.Store(id='total-transportation-emission'),
+    dcc.Store(id="stored-form-data"),
+    dcc.Store(id='output-ghg-prediction'),
     html.Div(
         html.Img(
             src='./assets/teamlogo.png',
@@ -545,7 +548,7 @@ manual_input_layout = dbc.Container([
                         ),
                         dbc.Col([
                             html.Div([
-                                html.H5("Size (sqft)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
+                                html.H5("Size (m squared)", style={'fontWeight': '600', 'fontSize': '18px', 'color': '#343a40'}),
                                 html.I(className="fas fa-info-circle", id="size-info-icon",
                                        style={'position': 'absolute', 'top': '5px', 'right': '5px', 'color': 'gray', 'cursor': 'pointer'})
                             ], style={'position': 'relative'}),
@@ -839,11 +842,12 @@ manual_input_layout = dbc.Container([
 @app.callback(
     [
         Output("form-error", "children"),
-        Output("url", "href")
+        Output("url", "href"),
+        Output("stored-form-data", "data")  # New output for dcc.Store
     ] + [
         Output(f"{input_id}", "style") for input_id in [
             "region-dropdown", "building-input", "zip-input", "year-input", "size-input", "employee-input",
-            "office-input","retail-input","parking-input",
+            "office-input", "retail-input", "parking-input",
             "energy-input", "water-input", "waste-input", "subway-commute-input", "bus-commute-input",
             "taxi-commute-input", "business-travel-flight-input", "business-travel-hotel-input",
             "business-procurement-air-freight-input", "business-procurement-diesel-truck-input",
@@ -890,8 +894,8 @@ def validate_and_store_form(n_clicks, *input_values):
     # Initialize error handling and storage variables
     error_messages = []
     styles = []
-    stored_data = {}  # Dictionary to store input values
-
+    global stored_data  # Dictionary to store input values
+    stored_data = {}
     # Validate each field and assign the appropriate style
     for idx, value in enumerate(input_values):
         if value is None or value == "":
@@ -900,15 +904,14 @@ def validate_and_store_form(n_clicks, *input_values):
         else:
             styles.append({"border": "1px solid #ced4da"})  # Valid style
             stored_data[field_names[idx]] = value  # Store valid values in dictionary
-
+    print(stored_data)
     # Check for errors and set navigation URL only if all fields are valid
     error_message = error_messages[0] if error_messages else ""
-    href = "/page-3" if n_clicks and not error_message else None
+    href = "/page-3-manual" if n_clicks and not error_message else None
 
-    # Log or print the stored data dictionary for debugging/confirmation
-    print("Stored Data Dictionary:", stored_data)  # This can be logged or printed to console
+    # Return values with stored_data added for dcc.Store
+    return [error_message, href, stored_data] + styles
 
-    return [error_message, href] + styles
 
 # Callback for input error data
 # 1. Zip Code Validation (6-digit Singapore postal code)
@@ -1117,7 +1120,7 @@ def use_stored_data(stored_data):
     # Use stored_data directly as a dictionary
     # For example, here we just format and display the entire dictionary
     global_data['manual_data'] = stored_data
-
+    print("Stored data updated:", global_data['manual_data'])
     
     # Now you have access to the entire dictionary and can use it as needed
     return f"Stored Data: {global_data['manual_data']}"
@@ -1130,7 +1133,7 @@ def use_stored_data(stored_data):
 def update_commuting_factors(region):
     # Fetch the commuting factors for the selected region
     if region in commuting_factors:
-        print(commuting_factors[region])
+        print("Commuting factors for region:", commuting_factors[region])
         return commuting_factors[region]
     
     return None  # Return None if no valid region is selected
@@ -1157,13 +1160,19 @@ def calculate_commuting_emissions(subway_value, bus_value, taxi_value, commuting
     taxi_emission = taxi_value * commuting_factors.get("Commuting Factor_Taxi", 0)
     total_emission = subway_emission + bus_emission + taxi_emission
     # Return as a dictionary to store in dcc.Store
+    global_data['commuting'] = {"Subway Emission": subway_emission,
+                                "Bus Emission": bus_emission,
+                                "Taxi Emission": taxi_emission,
+                                "Total Emission": total_emission}
+    print("Commuting emissions calculated:", global_data['commuting'])
     return {
         "Subway Emission": subway_emission,
         "Bus Emission": bus_emission,
         "Taxi Emission": taxi_emission,
         "Total Emission": total_emission
     }
-
+if 'manual_data' in global_data:
+    print(global_data['manual_data'])
 @app.callback(
     Output('output-calculation', 'children'),
     Input('commuting-emission-results-store', 'data')
@@ -1180,18 +1189,52 @@ def display_emissions(emissions_data):
         html.P(f"Total Emission: {emissions_data['Total Emission']:.2f} units"),
     ])
 
+# Business Travel and Procurement Emissions Calculation
+def calculate_business_emissions(travel_hotel, travel_flight, airline_km, diesel_truck_km, electric_truck_km):
+    hotel_factor = business_travel_procurement_factors["Business Travel"]["Business Travel-Hotel"]
+    flight_factor = business_travel_procurement_factors["Business Travel"]["Business Travel - Flight"]
+    airline_factor = business_travel_procurement_factors["Business Procurement"]["Airline"]
+    diesel_truck_factor = business_travel_procurement_factors["Business Procurement"]["Diesel Truck"]
+    electric_truck_factor = business_travel_procurement_factors["Business Procurement"]["Electric Truck"]
+
+    # Calculate emissions for each category
+    hotel_emission = travel_hotel * hotel_factor if travel_hotel else 0
+    flight_emission = travel_flight * flight_factor if travel_flight else 0
+    airline_emission = airline_km * airline_factor * 1000 if airline_km else 0
+    diesel_truck_emission = diesel_truck_km * diesel_truck_factor * 1000 if diesel_truck_km else 0
+    electric_truck_emission = electric_truck_km * electric_truck_factor * 1000 if electric_truck_km else 0
+
+    # Total emissions
+    total_emission_travel = hotel_emission + flight_emission
+    total_emission_procurement = airline_emission + diesel_truck_emission + electric_truck_emission
+
+    # Return individual emissions and totals for each category
+    return {
+        "Business Travel": {
+            "Hotel Emission": hotel_emission,
+            "Flight Emission": flight_emission,
+            "Total Emission": total_emission_travel
+        },
+        "Business Procurement": {
+            "Airline Emission": airline_emission,
+            "Diesel Truck Emission": diesel_truck_emission,
+            "Electric Truck Emission": electric_truck_emission,
+            "Total Emission": total_emission_procurement
+        }
+    }
+
 @app.callback(
     Output('business-travel-store', 'data'),
     Output('business-procurement-store', 'data'),
     [
-        Input('hotel-cost-input', 'value'),
-        Input('flight-cost-input', 'value'),
-        Input('airline-km-input', 'value'),
-        Input('diesel-truck-km-input', 'value'),
-        Input('electric-truck-km-input', 'value')
+        Input('business-travel-flight-input', 'value'),
+        Input('business-travel-hotel-input', 'value'),
+        Input('business-procurement-air-freight-input', 'value'),
+        Input('business-procurement-diesel-truck-input', 'value'),
+        Input('business-procurement-electric-truck-input', 'value')
     ]
 )
-def store_and_calculate_emissions(travel_hotel, travel_flight, airline_km, diesel_truck_km, electric_truck_km):
+def store_and_calculate_emissions(travel_flight, travel_hotel, airline_km, diesel_truck_km, electric_truck_km):
     # Calculate emissions based on inputs
     emissions = calculate_business_emissions(
         travel_hotel=travel_hotel,
@@ -1204,7 +1247,10 @@ def store_and_calculate_emissions(travel_hotel, travel_flight, airline_km, diese
     # Separate data for business travel and procurement
     travel_emissions = emissions["Business Travel"]
     procurement_emissions = emissions["Business Procurement"]
-    
+    global_data['business_travel'] = travel_emissions
+    global_data['business_procurement'] = procurement_emissions
+    print("Business travel emissions calculated:", travel_emissions)
+    print("Business procurement emissions calculated:", procurement_emissions)
     return travel_emissions, procurement_emissions
 
 # Total Transportation Emissions Calculation
@@ -1228,17 +1274,134 @@ def calculate_total_transportation_emissions(commuting_data, business_travel_dat
 
     # Calculate the total transportation emissions
     total_transportation_emission = commuting_total + business_travel_total + business_procurement_total
-
+    global_data['total_transportation'] = total_transportation_emission
+    print("Total transportation emissions calculated:", total_transportation_emission)
     # Store individual and total emissions in a dictionary
-    return {
+    com_bus_pro ={
         "Commuting Emission": commuting_total,
         "Business Travel Emission": business_travel_total,
         "Business Procurement Emission": business_procurement_total,
         "Total Transportation Emission": total_transportation_emission
     }
+    global_data['transportation'] = com_bus_pro
+    return com_bus_pro
 
+
+def ghg_predictions(data):
+    with open('../Group A/prediction models/scaler_xgb.pkl', 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
+
+    with open('../Group A/prediction models/tuned_xgb_model.pkl', 'rb') as model_file:
+        tuned_xgb_model = pickle.load(model_file)
+
+    # Step 2: Apply log transformation to match training preprocessing
+    new_data_df= np.log1p(data[['Energy', 'Waste', 'Water', 'Transportation']])
+    # Step 3: Standardize the new data using the scaler
+    new_data_scaled = scaler.transform(new_data_df)
+
+    # Step 6: Predict GHG_Total using the trained model
+    predicted_ghg_log = tuned_xgb_model.predict(new_data_scaled)
+
+    # Step 7: Inverse log transform to get the original GHG_Total value
+    predicted_ghg_total = np.expm1(predicted_ghg_log)
+    data['total_ghg'] = predicted_ghg_total
+    data['ghg_intensity_predicted'] = data['total_ghg'] / data['GFA']
+    # Create an instance of the validator
+    validator = GreenMarkValidator()
+
+    # Predict Green Mark levels for the 'ghg_intensity' column
+    if 'ghg_intensity_predicted' not in data.columns:
+        raise KeyError("Column 'ghg_intensity' not found in the DataFrame.")
+    results_df = validator.predict_green_mark(data['ghg_intensity_predicted'])
+
+    # Add the results as new columns in the original DataFrame
+    data[['predicted_greenmarks', 'threshold']] = results_df[['predicted_level', 'threshold']]
+    return data
+    # Step 8: Output the prediction results
+
+'''
+# Ensure all required keys are present in the dictionaries
+required_keys_manual = ['Water', 'Waste', 'Energy', 'Size']
+required_keys_transportation = ['Total Transportation Emission']
+data_manual = global_data.get('manual_data', {})
+print("data_manual before predictions", data_manual)
+if data_manual and all(key in data_manual for key in required_keys_manual) and all(key in data_transportation for key in required_keys_transportation):
+    
+    data_commute = global_data.get('commuting', {})
+    data_travel = global_data.get('business_travel', {})
+    data_procurement = global_data.get('business_procurement', {})
+    data_transportation = global_data.get('transportation', {})
+    data_for_predictions = {
+        'Water': data_manual['Water'],
+        'Waste': data_manual['Waste'],
+        'Energy': data_manual['Energy'],
+        'Transportation': data_transportation['Total Transportation Emission'],
+        'GFA': data_manual['Size']
+    }
+    
+else:
+    data_for_predictions = {}
 # Define layout for the new page - Model Visualization with Highlights
-page3_manual_layout = dbc.Container([
+
+if data_for_predictions:
+    # Convert data_for_predictions to a DataFrame
+    data_for_predictions_df = pd.DataFrame([data_for_predictions])
+
+    # Now you can pass it to the function
+    ghg_manual_prediction = ghg_predictions(data_for_predictions_df)
+
+
+print(data_for_predictions)
+# DATA FOR PREDICTIONS WILL CONTAIN water, waste, energy, transportation, ghg  
+'''
+
+
+global data_for_predictions
+data_for_predictions = {}
+# Gather data from various sources and check for required fields
+@app.callback(
+    Output('output-ghg-prediction', 'data'),  # Replace with actual output component
+    [
+        Input('commuting-emission-results-store', 'data'),
+        Input('business-travel-store', 'data'),
+        Input('business-procurement-store', 'data'),
+        Input('manual-data-store', 'data')
+    ]
+)
+
+
+def process_and_predict_ghg(commuting_data, business_travel_data, business_procurement_data, manual_data):
+    # Check all data sources are present
+    if not (commuting_data and business_travel_data and business_procurement_data and manual_data):
+        return "Some input data is missing."
+
+    # Gather and validate required data fields for GHG predictions
+    required_fields = ['Water', 'Waste', 'Energy', 'Size']
+    data_for_predictions = {
+        'Water': manual_data.get('Water'),
+        'Waste': manual_data.get('Waste'),
+        'Energy': manual_data.get('Energy'),
+        'Transportation': commuting_data.get("Total Emission", 0) + business_travel_data.get("Total Emission", 0) + business_procurement_data.get("Total Emission", 0),
+        'GFA': manual_data.get('Size')
+    }
+    
+    # Verify all required fields are available
+    if not all(data_for_predictions[field] for field in required_fields):
+        return "Some required fields are missing for GHG prediction."
+
+    # Convert to DataFrame and prepare for prediction
+    data_for_predictions_df = pd.DataFrame([data_for_predictions])
+    prediction_results = ghg_predictions(data_for_predictions_df)
+    global_data['prediction_results'] = prediction_results
+    # Display the prediction results
+    if prediction_results:
+        return prediction_results
+    else:
+        return "Prediction failed. Please check input values."
+
+if 'prediction_results' in global_data:
+    global_data['prediction_results'].to_csv('./datasets/prediction_results.csv', index=False)
+page_3_manual_layout = dbc.Container([
     # Logo and Header
     html.Div(
         html.Img(
@@ -1257,20 +1420,41 @@ page3_manual_layout = dbc.Container([
 
     # Award Circle
     dbc.Row([
-        dbc.Col(html.Div("Award String", className="award-circle",
-                         style={
-                             "borderRadius": "50%",
-                             "width": "100px",
-                             "height": "100px",
-                             "display": "flex",
-                             "alignItems": "center",
-                             "justifyContent": "center",
-                             "fontWeight": "bold",
-                             "fontSize": "20px",
-                             "backgroundColor": "#a8d08d",  # Example color
-                             "color": "#333",
-                             "margin": "auto"
-                         }), width="auto")
+        dbc.Col(html.Div([
+            html.H4("Total GHG", className="award-circle-header"),
+            html.Div(f"{data_for_predictions.get('total_ghg', 0.0):.2f}", className="award-circle-value"),
+        ], className="award-circle", style={
+            "borderRadius": "50%",
+            "minWidth": "100px", "minHeight": "100px",  # Minimum size
+            "padding": "10px 20px",  # Padding for dynamic resizing
+            "display": "flex", "alignItems": "center", "justifyContent": "center",
+            "fontWeight": "bold", "fontSize": "20px", "backgroundColor": "#a8d08d",
+            "color": "#333", "margin": "auto"
+        }), width="auto"),
+        
+        dbc.Col(html.Div([
+            html.H4("GHG Intensity", className="award-circle-header"),
+            html.Div(f"{data_for_predictions.get('ghg_intensity_predicted', 0.0):.2f}", className="award-circle-value"),
+        ], className="award-circle", style={
+            "borderRadius": "50%",
+            "minWidth": "100px", "minHeight": "100px",
+            "padding": "10px 20px",
+            "display": "flex", "alignItems": "center", "justifyContent": "center",
+            "fontWeight": "bold", "fontSize": "20px", "backgroundColor": "#9ACD32",
+            "color": "#333", "margin": "auto"
+        }), width="auto"),
+
+        dbc.Col(html.Div([
+            html.H4("Green Mark", className="award-circle-header"),
+            html.Div(f"{data_for_predictions.get('predicted_greenmarks', 0.0):.2f}", className="award-circle-value"),
+        ], className="award-circle", style={
+            "borderRadius": "50%",
+            "minWidth": "100px", "minHeight": "100px",
+            "padding": "10px 20px",
+            "display": "flex", "alignItems": "center", "justifyContent": "center",
+            "fontWeight": "bold", "fontSize": "20px", "backgroundColor": "#87CEEB",
+            "color": "#333", "margin": "auto"
+        }), width="auto"),
     ], justify="center", className="mb-5"),
 
     # GHG Intensity Cloud Shape
@@ -1358,6 +1542,7 @@ def update_violin_plot(predicted_ghg_value):
     return fig
 
 # Doughnut Plot Callbacks
+
 @app.callback(
     Output('commuting-emission-donut', 'figure'),
     Input('commuting-emission-results-store', 'data')
@@ -1365,7 +1550,7 @@ def update_violin_plot(predicted_ghg_value):
 def update_commuting_donut(data):
     fig = px.pie(
         names=["Subway", "Bus", "Taxi"],
-        values=[data['Subway Emission'], data['Bus Emission'], data['Taxi Emission']],
+        values=[data.get('Subway Emission', 0), data.get('Bus Emission', 0), data.get('Taxi Emission', 0)],
         title="Commuting Emission Breakdown",
         hole=0.4
     )
@@ -1378,7 +1563,7 @@ def update_commuting_donut(data):
 def update_business_travel_donut(data):
     fig = px.pie(
         names=["Hotel", "Flight"],
-        values=[data['Hotel Emission'], data['Flight Emission']],
+        values=[data.get('Hotel Emission', 0), data.get('Flight Emission', 0)],
         title="Business Travel Emission Breakdown",
         hole=0.4
     )
@@ -1391,14 +1576,19 @@ def update_business_travel_donut(data):
 def update_business_procurement_donut(data):
     fig = px.pie(
         names=["Airline", "Diesel Truck", "Electric Truck"],
-        values=[data['Airline Emission'], data['Diesel Truck Emission'], data['Electric Truck Emission']],
+        values=[data.get('Airline Emission', 0), data.get('Diesel Truck Emission', 0), data.get('Electric Truck Emission', 0)],
         title="Business Procurement Emission Breakdown",
         hole=0.4
     )
     return fig
+
+
+
 selected_columns = ['Employee', 'Transportation', 'Water', 'Waste', 'Energy', 'GFA', 'EUI']
-# Updated Page 2 layout to include EDA pair plot visualization
+
+# Define layout for Page 2 - Data Quality Check and EDA
 page_2_layout = dbc.Container([
+    # Logo and Header
     html.Div(
         html.Img(
             src='./assets/teamlogo.png',
@@ -1416,42 +1606,74 @@ page_2_layout = dbc.Container([
             'transition': 'right 0.3s ease'
         }
     ),
+    
     # Title Section
     dbc.Row([
         dbc.Col(html.H1("Data Quality Check and Exploratory Data Analysis",
-                        className="text-center",
-                        style={"fontWeight": "bold", "marginTop": "80px", "marginBottom": "30px", "color": "#333", "fontFamily": "Montserrat, sans-serif"}))
+                        style={"fontWeight": "bold", "marginTop": "80px", "marginBottom": "30px", "color": "#333", "fontFamily": "Montserrat, sans-serif", "fontSize": "32px"}))
     ]),
 
     # Data Overview Table Section
-    dbc.Row([
-        dbc.Col(html.H5("Data Overview Table", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-    dbc.Row([
-        dbc.Col(dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'}), width=12),
-    ], className="mb-5"),
+    dbc.Card([
+        dbc.CardHeader("Data Overview Table", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col(dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'}), width=12),
+            ], className="mb-5")
+        ])
+    ], className="mb-4"),
 
     # Missing Data Summary Section
-    dbc.Row([
-        dbc.Col([
-            html.H5("Missing Data Summary", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"}),
-            dash_table.DataTable(id='missing-data-table', style_table={'overflowX': 'auto'})
+    dbc.Card([
+        dbc.CardHeader("Missing Data Summary", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col(dash_table.DataTable(id='missing-data-table', style_table={'overflowX': 'auto'}), width=12),
+            ])
         ])
-    ], className="mt-5"),
+    ], className="mt-4 mb-4"),
 
     # Visualization of Data Completeness
-    dbc.Row([
-        dbc.Col([
-            html.H5("Visualization of Data Completeness", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"}),
-            dcc.Graph(id='completeness-graph', style={"height": "400px"})
-        ]),
-    ], className="mt-5"),
+    dbc.Card([
+        dbc.CardHeader("Visualization of Data Completeness", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col(dcc.Graph(id='completeness-graph', style={"height": "400px"}), width=12),
+            ]),
+        ])
+    ], className="mb-4"),
 
-    # Placeholder for User Actions
-    dbc.Row([
-        dbc.Col(html.Div(id='action-prompt'), className="mt-5")
-    ]),
+    # EDA Section Header
+    dbc.Card([
+        dbc.CardHeader("Exploratory Data Analysis", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+        dbc.CardBody([
+            # Summary Statistics Section
+            dbc.Row([
+                dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
+                dbc.Col(dash_table.DataTable(id='summary-statistics-table', style_table={'overflowX': 'auto'}), width=12),
+            ], className="mt-3 mb-5"),
+
+            # Histograms Section
+            dbc.Row([
+                dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
+                dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)
+            ], className="mt-3 mb-5"),
+
+            # Boxplots Section
+            dbc.Row([
+                dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
+                dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)
+            ], className="mt-3 mb-5"),
+        ])
+    ], className="mb-4"),
 
     # Navigation Buttons
     dbc.Row([
@@ -1463,40 +1685,7 @@ page_2_layout = dbc.Container([
             dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3',
                        style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
         ], width=3),
-    ], justify="center", className="mt-4 mb-5"),
-
-    # EDA Section Header
-    dbc.Row([
-        dbc.Col(html.H5("Exploratory Data Analysis", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-
-    # Summary Statistics Section
-    dbc.Row([
-        dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-    dbc.Row([
-        dbc.Col(dash_table.DataTable(id='summary-statistics-table', style_table={'overflowX': 'auto'}), width=12)
-    ], className="mb-5"),
-
-    # Histograms Section
-    dbc.Row([
-        dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-    dbc.Row([
-        dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)
-    ], className="mt-5"),
-
-    # Boxplots Section
-    dbc.Row([
-        dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-        dbc.Col(html.Hr(style={"borderTop": "1px solid #aaa", "width": "100%"}), width=12),
-    ], className="mt-3 mb-2"),
-    dbc.Row([
-        dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)
-    ], className="mt-5"),
+    ], justify="center", className="mt-4 mb-5")
 ], fluid=True)
 
 
@@ -1679,44 +1868,18 @@ def set_commuting_factors(region):
 df = pd.read_csv('./datasets/merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
 df['YearDate'] = pd.to_datetime(df['Year'].astype(str) + '-01-01')
 
-def ghg_predictions(data):
-    with open('../Group A/prediction models/scaler_xgb.pkl', 'rb') as scaler_file:
-        scaler = pickle.load(scaler_file)
 
-    with open('../Group A/prediction models/tuned_xgb_model.pkl', 'rb') as model_file:
-        tuned_xgb_model = pickle.load(model_file)
-
-    # Step 2: Apply log transformation to match training preprocessing
-    new_data_df= np.log1p(data[['Energy', 'Waste', 'Water', 'Transportation']])
-    # Step 3: Standardize the new data using the scaler
-    new_data_scaled = scaler.transform(new_data_df)
-
-    # Step 6: Predict GHG_Total using the trained model
-    predicted_ghg_log = tuned_xgb_model.predict(new_data_scaled)
-
-    # Step 7: Inverse log transform to get the original GHG_Total value
-    predicted_ghg_total = np.expm1(predicted_ghg_log)
-    df['total_ghg'] = predicted_ghg_total
-    df['ghg_intensity_predicted'] = df['total_ghg'] / df['GFA']
-    # Create an instance of the validator
-    validator = GreenMarkValidator()
-
-    # Predict Green Mark levels for the 'ghg_intensity' column
-    if 'ghg_intensity_predicted' not in data.columns:
-        raise KeyError("Column 'ghg_intensity' not found in the DataFrame.")
-    results_df = validator.predict_green_mark(df['ghg_intensity_predicted'])
-
-    # Add the results as new columns in the original DataFrame
-    df[['predicted_greenmarks', 'threshold']] = results_df[['predicted_level', 'threshold']]
-    # Step 8: Output the prediction results
 
 ghg_predictions(df)
 print(df.head())
 
 
 
-# Define layout for Page 3 - Model Running and Visualization
-# Define layout for Page 3 - Model Running and Visualization
+
+
+
+
+# Updated layout for Page 3 - Model Running and Visualization with Heatmap
 page_3_layout = dbc.Container([
     # Logo and Header
     html.Div(
@@ -1732,12 +1895,14 @@ page_3_layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.H1("Model Results and Benchmarking",
                         className="text-center",
-                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
+                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px", "fontSize": "32px"}))
     ]),
 
     # Dropdown for Building Selection Section
     dbc.Card([
-        dbc.CardHeader("Building Selection", style={"backgroundColor": "#A8D5BA", "color": "#2F4F4F", "fontWeight": "600"}),  # Lighter green header
+        dbc.CardHeader("Building Selection", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
             dbc.Row([
                 dbc.Col(html.H5("Select Building Name", style={"fontWeight": "600"})),
@@ -1757,7 +1922,9 @@ page_3_layout = dbc.Container([
 
     # Model Results Visualizations Section
     dbc.Card([
-        dbc.CardHeader("Model Results Visualizations", style={"backgroundColor": "#A8D5BA", "color": "#2F4F4F", "fontWeight": "600"}),  # Lighter green header
+        dbc.CardHeader("Model Results Visualizations", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
             dbc.Row([
                 dbc.Col(dcc.Graph(id='award'), width=6),
@@ -1768,7 +1935,9 @@ page_3_layout = dbc.Container([
 
     # Additional Analysis Section with side-by-side doughnut charts
     dbc.Card([
-        dbc.CardHeader("Additional Analysis", style={"backgroundColor": "#A8D5BA", "color": "#2F4F4F", "fontWeight": "600"}),  # Lighter green header
+        dbc.CardHeader("Additional Analysis", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
             dbc.Row([
                 dbc.Col(dcc.Graph(id='violin'), width=6),
@@ -1778,9 +1947,23 @@ page_3_layout = dbc.Container([
         ])
     ], className="mb-4"),
 
+    # Heatmap Section
+    dbc.Card([
+        dbc.CardHeader("Key Metrics Heatmap", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col(dcc.Graph(id='heatmap'), width=12),
+            ])
+        ])
+    ], className="mb-4"),
+
     # Transportation Contribution by Region Section with row split
     dbc.Card([
-        dbc.CardHeader("Transportation Contribution by Region Heatmaps", style={"backgroundColor": "#A8D5BA", "color": "#2F4F4F", "fontWeight": "600"}),  # Lighter green header
+        dbc.CardHeader("Transportation Contribution by Region Heatmaps", style={
+            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
             dbc.Row([
                 dbc.Col(html.Img(src="assets/2.png", style={"width": "100%", "height": "auto"}), width=6),
@@ -1797,6 +1980,8 @@ page_3_layout = dbc.Container([
         ], width=3),
     ], justify="center", className="mt-4 mb-5"),
 ], fluid=True)
+
+
 # Sidebar adjustment callback
 @app.callback(
     Output("page-3-logo-wrapper", "style"),
@@ -1987,7 +2172,36 @@ def update_pie_water_waste(value):
     return fig
 
 
-
+# Callback to update the heatmap
+@app.callback(
+    Output('heatmap', 'figure'),
+    Input('dropdown-selection', 'value')
+)
+def update_heatmap(value):
+    # Select relevant columns for the heatmap
+    heatmap_data = df[['Water', 'Waste', 'Energy', 'Transportation', 'GHG_Total']]
+    
+    # Calculate correlation for heatmap visualization
+    correlation_matrix = heatmap_data.corr()
+    
+    # Create heatmap
+    fig = px.imshow(
+        correlation_matrix,
+        text_auto=True,
+        aspect="auto",
+        title="Correlation Heatmap of Key Metrics",
+        color_continuous_scale="Greens"
+    )
+    
+    fig.update_layout(
+        xaxis_title="Metrics",
+        yaxis_title="Metrics",
+        font=dict(size=12),
+        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
+        paper_bgcolor='rgba(0,0,0,0)'  # Transparent paper background
+    )
+    
+    return fig
 
 
 # Define layout for Page 4 - Report Generation and Chatbot
@@ -2797,6 +3011,8 @@ def display_page(pathname):
         return page_2_layout
     elif pathname == '/page-3':
         return page_3_layout
+    elif pathname == '/page-3-manual':
+        return page_3_manual_layout  # New manual layout
     elif pathname == '/page-4':
         return page_4_layout
     elif pathname == '/page-5':

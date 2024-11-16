@@ -40,7 +40,7 @@ with open(business_path) as f:
 selected_commuting_factors = {}
 
 
-openai.api_key = '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'
+openai.api_key = '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'
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server
@@ -331,8 +331,8 @@ file_upload_layout = html.Div([
 ])
 
 UPLOAD_DIRECTORY = "./datasets"
-if not os.path.exists(UPLOAD_DIRECTORY):
-    os.makedirs(UPLOAD_DIRECTORY)
+#if not os.path.exists(UPLOAD_DIRECTORY):
+#   os.makedirs(UPLOAD_DIRECTORY)
 global_data = {}
 
 @app.callback(
@@ -433,12 +433,13 @@ style_without_error = {
 }
 manual_input_layout = dbc.Container([
     dcc.Store(id='commuting-factors-store'),
-    dcc.Store(id='manual-data-store'), 
-    dcc.Store(id='commuting-emission-results-store', storage_type='memory'),
+    dcc.Store(id="manual-data-store", data={}),
+    dcc.Store(id="commuting-emission-results-store", data={}),
     dcc.Store(id='business-travel-store'),
     dcc.Store(id='business-procurement-store'),
-    dcc.Store(id='total-transportation-emission'),
+    dcc.Store(id='total-transportation-emissions-store'),
     dcc.Store(id="stored-form-data"),
+    dcc.Store(id='output-calculation'),
     dcc.Store(id='output-ghg-prediction'),
     html.Div(
         html.Img(
@@ -907,8 +908,8 @@ def validate_and_store_form(n_clicks, *input_values):
     print(stored_data)
     # Check for errors and set navigation URL only if all fields are valid
     error_message = error_messages[0] if error_messages else ""
-    href = "/page-3-manual" if n_clicks and not error_message else None
-
+    href = "/page-3-manual" if n_clicks and not error_message else "/page-1"
+    global_data['user_data'] = stored_data
     # Return values with stored_data added for dcc.Store
     return [error_message, href, stored_data] + styles
 
@@ -1014,7 +1015,7 @@ def validate_parking_area(parking_area):
 def validate_energy(energy):
     if energy is None:
         return ""  # No error if no input
-    if energy < 1 or energy > 100000000:
+    if energy < 1 or energy > 10000000000000:
         return "Invalid value. Please enter a realistic energy consumption (1–100,000,000 kWh)."
     return ""  # No error if within the range
 
@@ -1026,7 +1027,7 @@ def validate_energy(energy):
 def validate_water(water):
     if water is None:
         return ""  # No error if no input
-    if water < 1 or water > 1000000:
+    if water < 1 or water > 10000000000:
         return "Invalid value. Please enter a realistic water consumption (1–1,000,000 m³)."
     return ""  # No error if within the range
 
@@ -1038,7 +1039,7 @@ def validate_water(water):
 def validate_waste(waste):
     if waste is None:
         return ""  # No error if no input
-    if waste < 0.1 or waste > 1000000:
+    if waste < 0.1 or waste > 1000000000:
         return "Invalid value. Please enter a realistic waste amount (0.1–1,000,000 tons)."
     return ""  # No error if within the range
 
@@ -1051,7 +1052,7 @@ def commute_validation_callback(input_id, output_id, field_name):
     def validate_commute(distance):
         if distance is None:
             return ""  # No error if no input
-        if distance < 1 or distance > 15000:
+        if distance < 1 or distance > 1500000:
             return f"Invalid value for {field_name} commute. Enter a realistic total distance (1–15,000 km * people)."
         return ""  # No error if within the range
     return validate_commute
@@ -1080,7 +1081,7 @@ def travel_expense_validation_callback(input_id, output_id, field_name):
     def validate_travel_expense(expense):
         if expense is None:
             return ""  # No error if no input
-        if expense < 0 or expense > 100000000:
+        if expense < 0 or expense > 100000000000:
             return f"Invalid {field_name} expense. Enter a realistic annual expense (0–100,000,000 SDG)."
         return ""  # No error if within the range
     return validate_travel_expense
@@ -1097,7 +1098,7 @@ def freight_validation_callback(input_id, output_id, field_name):
     def validate_freight(distance):
         if distance is None:
             return ""  # No error if no input
-        if distance < 1 or distance > 1000000:
+        if distance < 1 or distance > 100000000000:
             return f"Invalid value for {field_name}. Enter a realistic freight transport distance (1–1,000,000 t * km)."
         return ""  # No error if within the range
     return validate_freight
@@ -1172,7 +1173,7 @@ def calculate_commuting_emissions(subway_value, bus_value, taxi_value, commuting
         "Total Emission": total_emission
     }
 if 'manual_data' in global_data:
-    print(global_data['manual_data'])
+    print("manual_data after commuting",global_data['manual_data'])
 @app.callback(
     Output('output-calculation', 'children'),
     Input('commuting-emission-results-store', 'data')
@@ -1192,7 +1193,7 @@ def display_emissions(emissions_data):
 # Business Travel and Procurement Emissions Calculation
 def calculate_business_emissions(travel_hotel, travel_flight, airline_km, diesel_truck_km, electric_truck_km):
     hotel_factor = business_travel_procurement_factors["Business Travel"]["Business Travel-Hotel"]
-    flight_factor = business_travel_procurement_factors["Business Travel"]["Business Travel - Flight"]
+    flight_factor = business_travel_procurement_factors["Business Travel"]["Business Travel-Flight"]
     airline_factor = business_travel_procurement_factors["Business Procurement"]["Airline"]
     diesel_truck_factor = business_travel_procurement_factors["Business Procurement"]["Diesel Truck"]
     electric_truck_factor = business_travel_procurement_factors["Business Procurement"]["Electric Truck"]
@@ -1253,7 +1254,7 @@ def store_and_calculate_emissions(travel_flight, travel_hotel, airline_km, diese
     print("Business procurement emissions calculated:", procurement_emissions)
     return travel_emissions, procurement_emissions
 
-# Total Transportation Emissions Calculation
+
 @app.callback(
     Output('total-transportation-emissions-store', 'data'),
     [
@@ -1276,16 +1277,12 @@ def calculate_total_transportation_emissions(commuting_data, business_travel_dat
     total_transportation_emission = commuting_total + business_travel_total + business_procurement_total
     global_data['total_transportation'] = total_transportation_emission
     print("Total transportation emissions calculated:", total_transportation_emission)
-    # Store individual and total emissions in a dictionary
-    com_bus_pro ={
+    return {
         "Commuting Emission": commuting_total,
         "Business Travel Emission": business_travel_total,
         "Business Procurement Emission": business_procurement_total,
         "Total Transportation Emission": total_transportation_emission
     }
-    global_data['transportation'] = com_bus_pro
-    return com_bus_pro
-
 
 def ghg_predictions(data):
     with open('../Group A/prediction models/scaler_xgb.pkl', 'rb') as scaler_file:
@@ -1359,46 +1356,61 @@ print(data_for_predictions)
 global data_for_predictions
 data_for_predictions = {}
 # Gather data from various sources and check for required fields
+# Add the `next-report-button` as Input and add a new Output for page navigation.
+
+
+# Ensure "next-button" and "output-ghg-prediction" exist in the layout
 @app.callback(
-    Output('output-ghg-prediction', 'data'),  # Replace with actual output component
     [
-        Input('commuting-emission-results-store', 'data'),
-        Input('business-travel-store', 'data'),
-        Input('business-procurement-store', 'data'),
-        Input('manual-data-store', 'data')
+        Output("output-ghg-prediction", "data"),  # Stores prediction results if calculation succeeds
+        Output("next-button", "href"),            # Controls the navigation link based on success
+    ],
+    Input("next-button", "n_clicks"),
+    [
+        State('total-transportation-emissions-store', 'data'),
+        State('manual-data-store', 'data')
     ]
 )
+def process_and_navigate(n_clicks, transport_data, manual_data):
+    # Check if the next button has been clicked
+    if not n_clicks:
+        raise PreventUpdate  # Do nothing until the button is clicked
 
+    # Verify that all input data sources are present
+    if not (transport_data and manual_data):
+        return {"error": "Some input data is missing."}, None
 
-def process_and_predict_ghg(commuting_data, business_travel_data, business_procurement_data, manual_data):
-    # Check all data sources are present
-    if not (commuting_data and business_travel_data and business_procurement_data and manual_data):
-        return "Some input data is missing."
-
-    # Gather and validate required data fields for GHG predictions
-    required_fields = ['Water', 'Waste', 'Energy', 'Size']
+    # Construct data for predictions
     data_for_predictions = {
-        'Water': manual_data.get('Water'),
-        'Waste': manual_data.get('Waste'),
-        'Energy': manual_data.get('Energy'),
-        'Transportation': commuting_data.get("Total Emission", 0) + business_travel_data.get("Total Emission", 0) + business_procurement_data.get("Total Emission", 0),
-        'GFA': manual_data.get('Size')
+        'Water': manual_data.get('Water', 0),
+        'Waste': manual_data.get('Waste', 0),
+        'Energy': manual_data.get('Energy', 0),
+        'Transportation': transport_data.get("Total Emission", 0),
+        'GFA': manual_data.get('Size', 0)
     }
     
-    # Verify all required fields are available
-    if not all(data_for_predictions[field] for field in required_fields):
-        return "Some required fields are missing for GHG prediction."
+    # Check all required fields exist and are not None
+    required_fields = ['Water', 'Waste', 'Energy', 'Transportation', 'GFA']
+    if not all(data_for_predictions[field] is not None for field in required_fields):
+        return {"error": "Some required fields are missing for GHG prediction."}, None
 
-    # Convert to DataFrame and prepare for prediction
-    data_for_predictions_df = pd.DataFrame([data_for_predictions])
-    prediction_results = ghg_predictions(data_for_predictions_df)
-    global_data['prediction_results'] = prediction_results
-    # Display the prediction results
-    if prediction_results:
-        return prediction_results
-    else:
-        return "Prediction failed. Please check input values."
+    # Run predictions
+    try:
+        data_for_predictions_df = pd.DataFrame([data_for_predictions])
+        prediction_results = ghg_predictions(data_for_predictions_df)  # Call your prediction function
+        print("Prediction results:", prediction_results)  # Debugging print
 
+        # Set navigation link to proceed if calculation succeeds
+        return prediction_results, "/page-3-manual"
+
+    except Exception as e:
+        # Log the error and do not navigate
+        print(f"Prediction error: {e}")
+        return {"error": f"Prediction error: {str(e)}"}, None
+
+
+
+'''
 if 'prediction_results' in global_data:
     global_data['prediction_results'].to_csv('./datasets/prediction_results.csv', index=False)
 page_3_manual_layout = dbc.Container([
@@ -1582,7 +1594,215 @@ def update_business_procurement_donut(data):
     )
     return fig
 
+'''
 
+building_data = {
+    'Building Name': 'EQUINIX SG3 DATA CENTRE',
+    'Postcode': 139963,
+    'Year': 2021,
+    'Address': '26A AYER RAJAH CRESCENT, SINGAPORE 139963',
+    'Employee': 3349,
+    'Transportation': 20294264.86,
+    'GFA': 35218,
+    'Energy': 156833001,
+    'Waste': 303.3591407,
+    'Water': 96114.59328,
+    'GHG_Total': 3924.945017,
+    'GHG_Intensity': 0.11144713,
+    'Award': 'platinum'
+}
+
+# Synthetic Doughnut Data
+commuting_emission_data = {
+    'Subway Emission': 400,
+    'Bus Emission': 1000,
+    'Taxi Emission': 250
+}
+
+business_travel_data = {
+    'Hotel Emission': 1500,
+    'Flight Emission': 12000
+}
+
+business_procurement_data = {
+    'Airline Emission': 5000,
+    'Diesel Truck Emission': 200,
+    'Electric Truck Emission': 30
+}
+
+space_distribution_data = {
+    'Office': 70,
+    'Retail': 20,
+    'Parking': 10
+}
+
+# Doughnut Charts
+fig_commuting_donut = px.pie(
+    names=list(commuting_emission_data.keys()),
+    values=list(commuting_emission_data.values()),
+    title="Commuting Emission Breakdown",
+    hole=0.4
+)
+
+fig_business_travel_donut = px.pie(
+    names=list(business_travel_data.keys()),
+    values=list(business_travel_data.values()),
+    title="Business Travel Emission Breakdown",
+    hole=0.4
+)
+
+fig_business_procurement_donut = px.pie(
+    names=list(business_procurement_data.keys()),
+    values=list(business_procurement_data.values()),
+    title="Business Procurement Emission Breakdown",
+    hole=0.4
+)
+# Create the bar chart using Plotly
+benchmarks = {
+    'Platinum': 0.1,
+    'GoldPLUS': 0.12,
+    'Gold': 0.15,
+    'Certified': 0.2
+}
+current = building_data['GHG_Intensity']
+
+# Create bar chart data
+x = ['Current'] + list(benchmarks.keys())
+y = [current] + list(benchmarks.values())
+colors = ['#28a745'] + ['#007bff'] * len(benchmarks)
+
+# Create the bar chart
+fig = go.Figure(data=[
+    go.Bar(
+        x=x,
+        y=y,
+        marker_color=colors
+    )
+])
+
+# Customize chart
+fig.update_layout(
+    title='Green Mark Benchmarks',
+    yaxis_title='GHG Intensity (tCO2e/m²)',
+    xaxis_title='',
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    font=dict(size=14),
+    xaxis=dict(showgrid=False),
+    yaxis=dict(showgrid=True, gridcolor='lightgrey')
+)
+
+# Add performance analysis
+current_level = building_data['Award']
+next_level = 'GoldPLUS' if current_level == 'Gold' else 'Gold' if current_level == 'Certified' else None
+if next_level:
+    next_threshold = benchmarks[next_level]
+    improvement = ((current - next_threshold) / current) * 100
+    analysis_text = f"Below threshold by {abs(improvement):.2f}%\nNext Level: {next_level}"
+    fig.add_annotation(
+        text=analysis_text,
+        xref="paper", yref="paper",
+        x=0.5, y=-0.2,
+        showarrow=False,
+        font=dict(size=12, color='#28a745')
+    )
+
+# Add the graph beside the table
+dbc.Row([
+    dbc.Col(dbc.Table(
+        [
+            html.Thead(html.Tr([html.Th("Attribute"), html.Th("Value")])),
+            html.Tbody([
+                html.Tr([html.Td("Postcode"), html.Td(building_data['Postcode'])]),
+                html.Tr([html.Td("Year"), html.Td(building_data['Year'])]),
+                html.Tr([html.Td("Address"), html.Td(building_data['Address'])]),
+                html.Tr([html.Td("Employee Count"), html.Td(building_data['Employee'])]),
+                html.Tr([html.Td("Transportation Emissions"), html.Td(f"{building_data['Transportation']:.2f}")]),
+                html.Tr([html.Td("Gross Floor Area (GFA)"), html.Td(building_data['GFA'])]),
+                html.Tr([html.Td("Energy Consumption"), html.Td(building_data['Energy'])]),
+                html.Tr([html.Td("Waste"), html.Td(f"{building_data['Waste']:.2f}")]),
+                html.Tr([html.Td("Water Usage"), html.Td(f"{building_data['Water']:.2f}")]),
+                html.Tr([html.Td("GHG Total"), html.Td(f"{building_data['GHG_Total']:.2f}")]),
+                html.Tr([html.Td("GHG Intensity"), html.Td(f"{building_data['GHG_Intensity']:.5f}")]),
+                html.Tr([html.Td("Award"), html.Td(building_data['Award'].capitalize())]),
+            ])
+        ],
+        bordered=True,
+        hover=True,
+        responsive=True,
+        striped=True
+    ), width=6),
+    
+], justify='center', className="mb-4")
+
+page_3_manual_layout = dbc.Container([
+    dbc.Row([
+        dbc.Col(html.H2(building_data['Building Name'], className="text-center mb-4"))
+    ]),
+
+    # Building Information Table
+    dbc.Row([
+        dbc.Col(dbc.Table(
+            [
+                html.Thead(html.Tr([html.Th("Attribute"), html.Th("Value")])),
+                html.Tbody([
+                    html.Tr([html.Td("Postcode"), html.Td(building_data['Postcode'])]),
+                    html.Tr([html.Td("Year"), html.Td(building_data['Year'])]),
+                    html.Tr([html.Td("Address"), html.Td(building_data['Address'])]),
+                    html.Tr([html.Td("Employee Count"), html.Td(building_data['Employee'])]),
+                    html.Tr([html.Td("Transportation Emissions"), html.Td(f"{building_data['Transportation']:.2f}")]),
+                    html.Tr([html.Td("Gross Floor Area (GFA)"), html.Td(building_data['GFA'])]),
+                    html.Tr([html.Td("Energy Consumption"), html.Td(building_data['Energy'])]),
+                    html.Tr([html.Td("Waste"), html.Td(f"{building_data['Waste']:.2f}")]),
+                    html.Tr([html.Td("Water Usage"), html.Td(f"{building_data['Water']:.2f}")]),
+                    html.Tr([html.Td("GHG Total"), html.Td(f"{building_data['GHG_Total']:.2f}")]),
+                    html.Tr([html.Td("GHG Intensity"), html.Td(f"{building_data['GHG_Intensity']:.5f}")]),
+                    html.Tr([html.Td("Award"), html.Td(building_data['Award'].capitalize())]),
+                ])
+            ],
+            bordered=True,
+            hover=True,
+            responsive=True,
+            striped=True
+        ), width=6),
+        dbc.Col(dcc.Graph(figure=fig), width=6)
+    ], justify = 'center', className="mb-4"),
+
+    # Key Metrics Cards
+    dbc.Row([
+        dbc.Col(dbc.Card([
+            dbc.CardHeader("Total GHG", className="text-center font-weight-bold"),
+            dbc.CardBody(html.Div(f"{building_data['GHG_Total']:.2f}", className="text-center", style={"fontSize": "24px"}))
+        ], style={
+            "width": "150px", "margin": "auto", "backgroundColor": "#a8d08d",
+            "color": "#333", "borderRadius": "8px"
+        }), width="auto"),
+
+    dbc.Col(dbc.Card([
+        dbc.CardHeader("GHG Intensity", className="text-center font-weight-bold"),
+        dbc.CardBody(html.Div(f"{building_data['GHG_Intensity']:.5f}", className="text-center", style={"fontSize": "24px"}))
+    ], style={
+        "width": "150px", "margin": "auto", "backgroundColor": "#9ACD32",
+        "color": "#333", "borderRadius": "8px"
+    }), width="auto"),
+
+    dbc.Col(dbc.Card([
+        dbc.CardHeader("Award", className="text-center font-weight-bold"),
+        dbc.CardBody(html.Div(building_data['Award'].capitalize(), className="text-center", style={"fontSize": "24px"}))
+    ], style={
+        "width": "150px", "margin": "auto", "backgroundColor": "#87CEEB",
+        "color": "#333", "borderRadius": "8px"
+    }), width="auto"),
+    ], justify="center", className="mb-5"),
+
+
+    # Doughnut Plots Section
+    dbc.Row([
+        dbc.Col(dcc.Graph(figure=fig_commuting_donut), width=4),
+        dbc.Col(dcc.Graph(figure=fig_business_travel_donut), width=4),
+        dbc.Col(dcc.Graph(figure=fig_business_procurement_donut), width=4),
+    ], className="mb-5")
+], fluid=True)
 
 selected_columns = ['Employee', 'Transportation', 'Water', 'Waste', 'Energy', 'GFA', 'EUI']
 
@@ -1613,18 +1833,6 @@ page_2_layout = dbc.Container([
                         style={"fontWeight": "bold", "marginTop": "80px", "marginBottom": "30px", "color": "#333", "fontFamily": "Montserrat, sans-serif", "fontSize": "32px"}))
     ]),
 
-    # Data Overview Table Section
-    dbc.Card([
-        dbc.CardHeader("Data Overview Table", style={
-            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
-            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
-        dbc.CardBody([
-            dbc.Row([
-                dbc.Col(dash_table.DataTable(id='data-table', style_table={'overflowX': 'auto'}), width=12),
-            ], className="mb-5")
-        ])
-    ], className="mb-4"),
-
     # Missing Data Summary Section
     dbc.Card([
         dbc.CardHeader("Missing Data Summary", style={
@@ -1648,45 +1856,116 @@ page_2_layout = dbc.Container([
             ]),
         ])
     ], className="mb-4"),
-
+# Message Card for Missing Data Handling
+    dbc.Card([
+        dbc.CardBody([
+            html.P(
+                [
+                    "Please be rest assured the missing data points are automatically treated.", 
+                    html.Br(),
+                    "You can find out more information in our extended summary and reupload."
+                ],
+                style={
+                    "fontSize": "18px",  # Increased font size for better visibility
+                    "color": "#2E8B57",  # Distinct green color for emphasis
+                    "fontFamily": "Montserrat, sans-serif",
+                    "marginBottom": "0px",
+                    "textAlign": "left",
+                    "fontWeight": "bold"  # Bold text for emphasis
+                }
+            )
+        ])
+    ], className="mb-4"),
     # EDA Section Header
     dbc.Card([
         dbc.CardHeader("Exploratory Data Analysis", style={
             "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
             "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
-            # Summary Statistics Section
+        # Toggle Button
             dbc.Row([
-                dbc.Col(html.H5("Summary Statistics", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-                dbc.Col(dash_table.DataTable(id='summary-statistics-table', style_table={'overflowX': 'auto'}), width=12),
-            ], className="mt-3 mb-5"),
+                dbc.Col([
+                    dbc.Button("Hide EDA Plots", id="toggle-eda-visibility", color="primary", style={"width": "100%", "marginBottom": "15px"})
+                ], width=3)
+            ]),
 
-            # Histograms Section
-            dbc.Row([
-                dbc.Col(html.H5("Histograms of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-                dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12)
-            ], className="mt-3 mb-5"),
-
-            # Boxplots Section
-            dbc.Row([
-                dbc.Col(html.H5("Boxplots of Selected Columns", className="text-left", style={"fontWeight": "600", "color": "#555", "fontFamily": "Montserrat, sans-serif"})),
-                dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)
-            ], className="mt-3 mb-5"),
+        # Container for the EDA Plots
+            dbc.Collapse(
+                dbc.Row([
+                    dbc.Col(dcc.Graph(id='histograms', style={"height": "400px", "width": "100%"}), width=12),
+                    dbc.Col(dcc.Graph(id='box-plots', style={"height": "400px", "width": "100%"}), width=12)
+                ]),
+                id="eda-collapse",
+                is_open=False  # Default state is expanded
+            ),
         ])
     ], className="mb-4"),
+
+    # Missing Data Details Section
+    dbc.Card([
+            dbc.CardHeader("Missing Data Details", style={
+                "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
+                "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            "Show Missing Data Table", id="toggle-missing-data", color="primary", style={"width": "100%"}
+                        ), width=3
+                    )
+                ], className="mb-3"),
+                dbc.Collapse(
+                    dash_table.DataTable(
+                        id='missing-data-details-table',
+                        style_table={'overflowX': 'auto', 'marginTop': '20px'},
+                        style_cell={
+                            'textAlign': 'center',
+                            'fontFamily': 'Montserrat, sans-serif',
+                            'padding': '10px',
+                            'fontSize': '14px'
+                        },
+                        style_header={
+                            'backgroundColor': '#A8D5BA',
+                            'fontWeight': 'bold',
+                            'textAlign': 'center'
+                    }
+                    ),
+                    id="missing-data-collapse",
+                    is_open=False  # Default state is collapsed
+                )
+            ])
+    ], className="mb-4"),
+
 
     # Navigation Buttons
     dbc.Row([
         dbc.Col([
-            dbc.Button("Re-upload Data", id="reupload-button", color="warning", href='/page-1',
-                       style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
+            dcc.Link(
+                dbc.Button(
+        "Re-upload Data",
+                    id="reupload-button",
+                    color="warning",
+                    style={
+                        'width': '100%',
+                        'padding': '10px',
+                        'borderRadius': '8px',
+                        'fontWeight': 'bold',
+                        'fontFamily': 'Montserrat, sans-serif'
+                    }
+                ),
+                href='/page-1'),
         ], width=3),
         dbc.Col([
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3',
-                       style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
+            dcc.Link(
+                dbc.Button("Next: Model Running and Comparison", color="success"),
+                href='/page-3'
+            ),
         ], width=3),
     ], justify="center", className="mt-4 mb-5")
 ], fluid=True)
+
+
+
 
 
 @app.callback(
@@ -1714,39 +1993,26 @@ def display_missing_data(pathname):
         # Calculate missing data statistics
         missing_data = df.isnull().sum().reset_index()
         missing_data.columns = ['Column', 'Missing Values']
-        missing_data['% Missing'] = (missing_data['Missing Values'] / len(df)) * 100
+        # Filter only columns with missing values
+        missing_data = missing_data[missing_data['Missing Values'] > 0]
         
-        # Convert missing data summary to dict for dash_table
-        table_data = missing_data.to_dict('records')
+        if not missing_data.empty:
+            # Convert missing data summary to dict for dash_table
+            table_data = missing_data.to_dict('records')
+            
+            # Plot missing data as a bar chart
+            fig = px.bar(
+                missing_data, x='Column', y='Missing Values',
+                title='Missing Data Percentage by Column',
+                labels={'Number of Missing Values'},
+                color='Column'
+            )
+            
+            return table_data, fig
         
-        # Plot missing data as a bar chart
-        fig = px.bar(missing_data, x='Column', y='% Missing', title='Missing Data Percentage by Column')
-        
-        return table_data, fig
-    
-    return [], go.Figure()  # Empty output if data is not available
-
-@app.callback(
-    Output('action-prompt', 'children'),
-    Input('missing-data-table', 'data')
-)
-def show_action_prompt(missing_data):
-    if missing_data:
-        # Check if there is any missing data
-        missing_exists = any(row['Missing Values'] > 0 for row in missing_data)
-        if missing_exists:
-            return html.Div([
-                html.P("Missing data detected. Please choose an action:"),
-                dbc.Row([
-                    dbc.Col([
-                        dbc.Button("Drop All Missing", id="drop-missing-button", color="danger", className="mr-2"),
-                    ], width="auto"),
-                    dbc.Col([
-                        dbc.Button("Fill Out Missing Values and Re-upload", id="reupload-prompt-button", color="primary", className="ml-2", href='/page-1')
-                    ], width="auto"),
-                ])
-            ])
-    return html.Div()  # Return empty if no missing data
+        # No missing data case
+        return [], go.Figure()
+    return [], go.Figure()
 
 @app.callback(
     Output('eda-output', 'children'),
@@ -1765,26 +2031,19 @@ def drop_missing_data(n_clicks):
                 )
             ])
     return None
-
 @app.callback(
-    Output('summary-statistics-table', 'data'),
-    Input('url', 'pathname')
+    [Output("eda-collapse", "is_open"), Output("toggle-eda-visibility", "children")],
+    Input("toggle-eda-visibility", "n_clicks"),
+    State("eda-collapse", "is_open"),
 )
-def display_summary_statistics(pathname):
-    if pathname == '/page-2' and 'uploaded_df' in global_data:
-        df = global_data['uploaded_df'][selected_columns]
-        
-        # Calculate summary statistics
-        summary_stats = df.describe().transpose().reset_index()
-        summary_stats.columns = ['Column', 'Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']
-        
-        # Convert summary statistics to dict for dash_table
-        table_data = summary_stats.to_dict('records')
-        
-        return table_data
-    
-    return []
+def toggle_eda_plots(n_clicks, is_open):
+    # Toggle the collapse state
+    if n_clicks:
+        is_open = not is_open
 
+    # Update the button text based on the state
+    button_text = "Show EDA Plots" if not is_open else "Hide EDA Plots"
+    return is_open, button_text
 
 # eda histogram and 
 
@@ -1845,6 +2104,37 @@ def display_eda_visualizations(pathname):
     
     return go.Figure(), go.Figure()
 
+@app.callback(
+    Output('missing-data-collapse', 'is_open'),
+    Input('toggle-missing-data', 'n_clicks'),
+    State('missing-data-collapse', 'is_open')
+)
+def toggle_missing_data_table(n_clicks, is_open):
+    if n_clicks:
+        return not is_open
+    return is_open
+
+@app.callback(
+    Output('missing-data-details-table', 'data'),
+    Input('url', 'pathname')
+)
+def populate_missing_data_details(pathname):
+    if pathname == '/page-2' and 'uploaded_df' in global_data:
+        df = global_data['uploaded_df']
+        
+        # Identify missing data details
+        missing_details = df[df.isnull().any(axis=1)]  # Rows with missing data
+        missing_details['Missing Columns'] = missing_details.isnull().apply(
+            lambda row: ', '.join(missing_details.columns[row]), axis=1
+        )
+        # Limit to first 5 rows
+        limited_missing_details = missing_details.head()
+        
+        # Convert to dictionary format for Dash table
+        table_data = limited_missing_details.reset_index().to_dict('records')
+        return table_data
+    
+    return []  # Default empty data if no missing data
 
 selected_commuting_factors = {}
 
@@ -1865,13 +2155,11 @@ def set_commuting_factors(region):
 
 
 # need to process the paths for the data
-df = pd.read_csv('./datasets/merged_df1.csv', encoding="utf-8", encoding_errors='ignore')
-df['YearDate'] = pd.to_datetime(df['Year'].astype(str) + '-01-01')
-
+df = pd.read_csv('./datasets/merged_df1.csv', encoding="latin-1", encoding_errors='ignore')
+df = df.dropna()
 
 
 ghg_predictions(df)
-print(df.head())
 
 
 
@@ -1922,7 +2210,7 @@ page_3_layout = dbc.Container([
 
     # Model Results Visualizations Section
     dbc.Card([
-        dbc.CardHeader("Model Results Visualizations", style={
+        dbc.CardHeader("Green Mark Scheme Bencnmarking and Trends", style={
             "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
             "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
@@ -1935,7 +2223,7 @@ page_3_layout = dbc.Container([
 
     # Additional Analysis Section with side-by-side doughnut charts
     dbc.Card([
-        dbc.CardHeader("Additional Analysis", style={
+        dbc.CardHeader("Performance Analysis", style={
             "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
             "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
         dbc.CardBody([
@@ -1946,6 +2234,46 @@ page_3_layout = dbc.Container([
             ]),
         ])
     ], className="mb-4"),
+    # Transportation Contribution by Region Section with row split
+    dbc.Card([
+        dbc.CardHeader(
+            "Transportation Contribution by Region Heatmaps", 
+            style={
+                "backgroundColor": "#A8D5BA",
+                "color": "#2F4F4F",
+                "fontWeight": "600",
+                "fontSize": "24px",
+                "textAlign": "left"
+            }
+        ),
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col(
+                    html.Div([
+                        html.Img(src="assets/2.png", style={"width": "100%", "height": "auto"}),
+                        html.Div(
+                            "Please be reminded if you're in the high emission central region. Government regulations may apply to higher level emissions.",
+                            style={
+                                "color": "red",
+                                "fontSize": "40px",
+                                "fontWeight": "bold",
+                                "textAlign": "center",
+                                "marginTop": "10px"
+                            }
+                        )
+                    ]),
+                    width=12
+                ),
+            ], className="mb-4"),
+            dbc.Row([
+                dbc.Col(
+                    html.Img(src="assets/1.png", style={"width": "100%", "height": "auto"}),
+                    width=12
+                ),
+            ])
+        ])
+    ], className="mb-4"),
+
 
     # Heatmap Section
     dbc.Card([
@@ -1955,19 +2283,6 @@ page_3_layout = dbc.Container([
         dbc.CardBody([
             dbc.Row([
                 dbc.Col(dcc.Graph(id='heatmap'), width=12),
-            ])
-        ])
-    ], className="mb-4"),
-
-    # Transportation Contribution by Region Section with row split
-    dbc.Card([
-        dbc.CardHeader("Transportation Contribution by Region Heatmaps", style={
-            "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
-            "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
-        dbc.CardBody([
-            dbc.Row([
-                dbc.Col(html.Img(src="assets/2.png", style={"width": "100%", "height": "auto"}), width=6),
-                dbc.Col(html.Img(src="assets/1.png", style={"width": "100%", "height": "auto"}), width=6),
             ])
         ])
     ], className="mb-4"),
@@ -1995,41 +2310,80 @@ def adjust_logo_position(n_clicks, current_style):
         current_style["right"] = "40px"
     return current_style
 
-# Line Chart Callback - Year Trend
 @app.callback(
     Output('year_trend_line', 'figure'),
     Input('dropdown-selection', 'value')
 )
-def update_line_chart(value):
-    year_trend_df = df.groupby('YearDate').agg({'ghg_intensity_predicted': 'mean'}).reset_index()
-    fig = px.line(year_trend_df, x='YearDate', y='ghg_intensity_predicted', 
-                  title="Greenhouse Gas Emissions Intensity Over Time",
-                  labels={"ghg_intensity_predicted": "Greenhouse Gas Emissions Intensity"})
-    fig.update_traces(line=dict(color="#365E32"))
+def update_line_chart(selected_building):
+    # Check if a building is selected
+    if not selected_building:
+        raise dash.exceptions.PreventUpdate
+    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
+        # Filter the DataFrame for the selected building
+        building_data = df[df['Building Name'] == selected_building]
+        
+        # Group data by YearDate and calculate the mean total GHG for the selected building
+        year_trend_df = building_data.groupby('Year').agg({'total_ghg': 'mean'}).reset_index()
+
+        # Create the line chart
+        fig = px.line(
+            year_trend_df,
+            x='Year',
+            y='total_ghg',
+            title=f"Greenhouse Gas Emissions Over Time for {selected_building}",
+            labels={
+                "total_ghg": "Total Greenhouse Gas Emissions (tCO₂e/m²)",
+                "Year": "Year"
+            }
+        )
+
+        # Customize line color and layout
+        fig.update_traces(line=dict(color="#365E32"))
+        fig.update_layout(
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=False),
+            font=dict(size=14)
+        )
+    else:
+        # If no valid building is selected, display a placeholder message
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Please select a valid building name to view its emissions trend.",
+            x=0.5, y=0.5,
+            xref="paper", yref="paper",
+            showarrow=False,
+            font=dict(size=16, color="red")
+        )
+        fig.update_layout(
+            title="Greenhouse Gas Emissions Over Time",
+            plot_bgcolor='white',
+            paper_bgcolor='white'
+        )
+
     return fig
 
-# award distribution
+
+# Benchmarking Callback - Award Bar Chart
+
 @app.callback(
     Output('award', 'figure'),
     Input('dropdown-selection', 'value')
 )
-def update_bar_chart(value):
-    # Group data by 'predicted_greenmarks' and count unique buildings
+def update_combined_chart(selected_building):
+    # Awards distribution plot
     bar_data = df.groupby('predicted_greenmarks').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
-    
-    # Define yellow and green color mapping for each Green Mark level
+
     color_map = {
         'certified': '#a8d08d',   # Light Green
         'gold': '#ffd966',        # Yellow
         'goldplus': '#e6b800',    # Darker Yellow/Gold
         'platinum': '#4b830d'     # Dark Green
     }
-    
-    # Assign colors to each bar based on the level
     colors = [color_map.get(level.lower(), '#333333') for level in bar_data['predicted_greenmarks']]
 
-    # Create the bar chart
-    fig = go.Figure(data=[go.Bar(
+    awards_fig = go.Figure(data=[go.Bar(
         x=bar_data['predicted_greenmarks'],
         y=bar_data['unique_building_count'],
         text=bar_data['unique_building_count'],
@@ -2039,8 +2393,7 @@ def update_bar_chart(value):
         hovertext=[f"{level}: {count} buildings" for level, count in zip(bar_data['predicted_greenmarks'], bar_data['unique_building_count'])]
     )])
 
-    # Apply a theme and layout customization with Dash canvas background
-    fig.update_layout(
+    awards_fig.update_layout(
         title=dict(
             text="Awards Distribution",
             font=dict(size=20, family="Arial, sans-serif", color="#333333"),
@@ -2058,33 +2411,123 @@ def update_bar_chart(value):
             title="Unique Building Count",
             titlefont=dict(size=16, family="Arial, sans-serif", color="#333333"),
             showgrid=True,
-            gridcolor="rgba(200, 200, 200, 0.3)",  # Light grey grid lines
+            gridcolor="rgba(200, 200, 200, 0.3)",
             zeroline=False,
-            tickfont=dict(size=14, color="#333333")
+            tickfont=dict(size=14, color="#333333"),
         ),
-        plot_bgcolor="#f9f9f9",  # Set to the same background color as the Dash canvas
-        paper_bgcolor="#f9f9f9",  # Set to the same background color as the Dash canvas
+        plot_bgcolor="#f9f9f9",
+        paper_bgcolor="#f9f9f9",
         showlegend=False,
-        margin=dict(l=40, r=40, t=50, b=40)  # Padding for a balanced layout
+        margin=dict(l=40, r=40, t=50, b=40)
     )
 
-    return fig
+    # Building intensity vs benchmarks plot
+    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
+        building_data = df[df['Building Name'] == selected_building]
+        building_intensity = building_data['ghg_intensity_predicted'].values[0]
+        benchmarks = {
+            'Platinum': 0.1,
+            'GoldPLUS': 0.12,
+            'Gold': 0.15,
+            'Certified': 0.2
+        }
 
-# Violin Chart Callback - GHG Intensity
+        intensity_data = pd.DataFrame({
+            'Category': ['Selected Building'] + list(benchmarks.keys()),
+            'Intensity': [building_intensity] + list(benchmarks.values())
+        })
+        colors = ['#FF5733'] + ['#007bff'] * len(benchmarks)
+
+        benchmark_fig = go.Figure(data=[go.Bar(
+            x=intensity_data['Category'],
+            y=intensity_data['Intensity'],
+            marker_color=colors,
+            text=intensity_data['Intensity'].apply(lambda x: f"{x:.2f}"),
+            textposition='auto',
+            hoverinfo='text',
+            hovertext=[f"{cat}: {val:.2f} tCO₂e/m²" for cat, val in zip(intensity_data['Category'], intensity_data['Intensity'])]
+        )])
+
+        benchmark_fig.update_layout(
+            title=f"GHG Intensity for {selected_building} and Benchmarks",
+            xaxis=dict(
+                title="Category",
+                titlefont=dict(size=16, family="Arial, sans-serif", color="#333333"),
+                showgrid=False,
+                zeroline=False,
+                tickfont=dict(size=14, color="#333333"),
+            ),
+            yaxis=dict(
+                title="GHG Intensity (tCO₂e/m²)",
+                titlefont=dict(size=16, family="Arial, sans-serif", color="#333333"),
+                showgrid=True,
+                gridcolor="rgba(200, 200, 200, 0.3)",
+                zeroline=False,
+                tickfont=dict(size=14, color="#333333"),
+            ),
+            plot_bgcolor="#f9f9f9",
+            paper_bgcolor="#f9f9f9",
+            showlegend=False,
+            margin=dict(l=40, r=40, t=50, b=40)
+        )
+    else:
+        benchmark_fig = go.Figure()
+        benchmark_fig.add_annotation(
+            text="Please select a valid building name.",
+            x=0.5, y=0.5,
+            xref="paper", yref="paper",
+            showarrow=False,
+            font=dict(size=16, color="red")
+        )
+        benchmark_fig.update_layout(
+            title="GHG Intensity and Benchmarks",
+            plot_bgcolor="#f9f9f9",
+            paper_bgcolor="#f9f9f9"
+        )
+
+    # Combine both charts into a single layout
+    combined_fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=("Awards Distribution", "Building Intensity vs Benchmarks")
+    )
+    combined_fig.add_traces(awards_fig.data, rows=1, cols=1)
+    combined_fig.add_traces(benchmark_fig.data, rows=1, cols=2)
+
+    combined_fig.update_layout(
+        title="Awards Distribution and Building Intensity Comparison",
+        showlegend=False,
+        plot_bgcolor="#f9f9f9",
+        paper_bgcolor="#f9f9f9",
+        font=dict(size=14),
+        margin=dict(l=40, r=40, t=60, b=40)
+    )
+
+    return combined_fig
+
+
+
+
+
+
+
 @app.callback(
     Output('violin', 'figure'),
     Input('dropdown-selection', 'value')
 )
 def update_violin_chart(selected_building):
     # Apply log transformation
-    df['GHG_Total_Log'] = np.log(df['GHG_Total'] + 1)
+    df['GHG_Total_Log'] = np.log(df['total_ghg'] + 1)
     
-    # Create a violin plot with swarm points
+    # Calculate quantiles
+    q25, q50, q75 = df['GHG_Total_Log'].quantile([0.25, 0.5, 0.75])
+    
+    # Create the violin plot
     fig = go.Figure()
     fig.add_trace(go.Violin(
         x=df['GHG_Total_Log'],
-        name='GHG Emissions (Log Transformed)',
-        box_visible=True,
+        name='GHG Emissions',
+        box_visible=True,  # Enable boxplot stats
         meanline_visible=True,
         fillcolor='lightblue',
         line_color='darkblue',
@@ -2092,33 +2535,79 @@ def update_violin_chart(selected_building):
         orientation='h'
     ))
     fig.add_trace(go.Scatter(
-        y=['GHG Emissions (Log Transformed)'] * len(df),
+        y=['GHG Emissions'] * len(df),
         x=df['GHG_Total_Log'],
         mode='markers',
         marker=dict(size=6, color='rgba(0, 128, 0, 0.5)', symbol='circle')
     ))
 
-    # Highlight selected building if valid
-    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
-        highlight_df = df[df['Building Name'] == selected_building]
-        fig.add_trace(go.Scatter(
-            y=['GHG Emissions (Log Transformed)'] * len(highlight_df),
-            x=highlight_df['GHG_Total_Log'],
-            mode='markers',
-            marker=dict(size=14, color='orange', symbol='diamond')
-        ))
+    # Default status message
+    status_message = "Select a building to view its status."
+    annotation = None
 
+    # Highlight selected building and determine its status
+    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
+        building_data = df[df['Building Name'] == selected_building]
+        building_log_ghg = building_data['GHG_Total_Log'].values[0]
+        
+        # Add marker for the selected building
+        fig.add_trace(go.Scatter(
+            y=['GHG Emissions'],
+            x=[building_log_ghg],
+            mode='markers',
+            marker=dict(size=14, color='orange', symbol='diamond'),
+            name="Selected Building"
+        ))
+        
+        # Determine the status message
+        if building_log_ghg < q25:
+            status_message = "Your GHG emissions are on track and doing good."
+        elif q25 <= building_log_ghg < q50:
+            status_message = "Your GHG emissions are relatively okay."
+        elif q50 <= building_log_ghg < q75:
+            status_message = "Your GHG emissions are moderately high. Consider improving efficiency."
+        else:
+            status_message = (
+                "You have a relatively high GHG emission level. "
+                "You might need to be aware of government regulations."
+            )
+        
+        # Add annotation to display the status message on the plot
+        annotation = dict(
+            x=building_log_ghg,
+            y='GHG Emissions',
+            xref='x',
+            yref='y',
+            text=status_message,
+            showarrow=True,
+            arrowhead=2,
+            arrowsize=1,
+            arrowwidth=1,
+            ax=50,  # Horizontal offset for the annotation
+            ay=-50,  # Vertical offset for the annotation
+            font=dict(size=15, color='black'),
+            bgcolor='rgba(255,255,255,0.8)',
+            bordercolor='black',
+            borderwidth=1
+        )
+
+    # Add annotation if a building is selected
+    if annotation:
+        fig.update_layout(annotations=[annotation])
+
+    # Customize plot layout
     fig.update_layout(
-        title="Horizontal Violin Plot with Swarm Points for GHG Emissions (Log Transformed)",
-        yaxis_title='Building',
-        xaxis_title='Log of Total GHG Emissions (ton)',
-        plot_bgcolor='rgba(0,0,0,0)',  # Transparent plot background
-        paper_bgcolor='rgba(0,0,0,0)',  # Transparent paper background
+        title="GHG Emissions for All Buildings",
+        yaxis_title='',
+        xaxis_title='Total GHG Emissions (Log Transformed)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
         font=dict(size=14),
         xaxis=dict(showgrid=True, gridcolor='lightgrey'),
-        yaxis=dict(showgrid=True, gridcolor='lightgrey'),
+        yaxis=dict(showgrid=False, visible=False),
         showlegend=False
     )
+    
     return fig
 
 
@@ -2127,25 +2616,71 @@ def update_violin_chart(selected_building):
     Output('pie_2', 'figure'),
     Input('dropdown-selection', 'value')
 )
-def update_pie_scope(value):
+def update_bar_scope(value):
     melt_cols = ['Building Name', "Scope1", "Scope2", "Scope3"]
     pie_data = pd.melt(df[melt_cols], id_vars='Building Name', var_name='key', value_name='value')
     pie_data = pie_data.groupby('key').agg({"value": 'sum'}).reset_index()
     
-    # Define color mapping for each Scope
+    # Calculate total emissions and percentages
+    total_emissions = pie_data['value'].sum()
+    pie_data['percentage'] = (pie_data['value'] / total_emissions) * 100
+    
+    # Define a more distinctive green color mapping for each Scope
     color_map = {
-        'Scope1': '#008000',   # Green
-        'Scope2': '#228B22',   # Forest Green
-        'Scope3': '#9ACD32'    # Yellow Green
+        'Scope1': '#006400',   # Dark Green
+        'Scope2': '#32CD32',   # Lime Green
+        'Scope3': '#ADFF2F'    # Green Yellow
     }
     
     # Map colors based on the 'key' column
     colors = [color_map.get(scope, '#333333') for scope in pie_data['key']]
+    
+    # Identify the largest percentage and its corresponding scope
+    max_row = pie_data.loc[pie_data['percentage'].idxmax()]
+    max_scope = max_row['key']
+    max_percentage = max_row['percentage']
 
-    # Create the donut chart
-    fig = px.pie(pie_data, names='key', values='value', title="Scope Emissions Distribution", hole=0.4)
-    fig.update_traces(marker=dict(colors=colors), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+    # Create the bar plot
+    fig = go.Figure(data=[
+        go.Bar(
+            x=pie_data['key'], 
+            y=pie_data['percentage'],  # Use percentage for the y-axis
+            marker=dict(color=colors),
+            text=pie_data['percentage'].apply(lambda x: f'{x:.2f}%'),  # Show percentage as text
+            textposition='auto'
+        )
+    ])
+
+    # Add annotation for the highest percentage
+    fig.add_annotation(
+        x=max_scope,  # Scope with the highest percentage
+        y=max_percentage,
+        text="Highest, Room for Improvements & Reduction",
+        showarrow=True,
+        arrowhead=2,
+        arrowsize=1,
+        ax=0,  # Horizontal offset for the annotation
+        ay=-40,  # Vertical offset for the annotation
+        font=dict(size=12, color='black'),
+        bgcolor='rgba(255,255,255,0.8)',
+        bordercolor='black',
+        borderwidth=1
+    )
+
+    # Customize the layout
+    fig.update_layout(
+        title="Scope Emissions Distribution (Percentage)",
+        xaxis_title="Emission Scope",
+        yaxis_title="Percentage of Total Emissions",
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(size=14),
+        yaxis=dict(ticksuffix='%')  # Add percentage suffix to y-axis ticks
+    )
+    
     return fig
+
+
 
 # Donut Chart Callback - Water and Waste
 @app.callback(
@@ -2153,23 +2688,73 @@ def update_pie_scope(value):
     Input('dropdown-selection', 'value')
 )
 def update_pie_water_waste(value):
-    melt_cols = ['Building Name', "Water", "Waste"]
-    pie_data = pd.melt(df[melt_cols], id_vars='Building Name', var_name='key', value_name='value')
-    pie_data = pie_data.groupby('key').agg({"value": 'sum'}).reset_index()
-    
-    # Define color mapping for Water and Waste
-    color_map = {
-        'Water': '#9ACD32',  # Dark Green
-        'Waste': '#81A263'   # Lighter Green
+    # Define columns to process and their emission factors
+    melt_cols = ['Building Name', "Water", "Waste", "Energy", "Transportation"]
+    emission_factors = {
+        'Water': 0.344,          # kg CO2e per m³
+        'Waste': 750,            # kg CO2e per ton
+        'Energy': 0.5,           # kg CO2e per kWh
+        'Transportation': 1      # kg CO2e per km (example value)
     }
-    
-    # Map colors based on the 'key' column
-    colors = [color_map.get(item, '#333333') for item in pie_data['key']]
+
+    # Reshape data and calculate CO2e emissions
+    pie_data = pd.melt(df[melt_cols], id_vars='Building Name', var_name='key', value_name='value')
+    pie_data['CO2e'] = pie_data.apply(lambda row: row['value'] * emission_factors.get(row['key'], 1), axis=1)
+    pie_data = pie_data.groupby('key').agg({"CO2e": 'sum'}).reset_index()
+
+    # Define base color mapping for Water, Waste, Energy, and Transportation
+    base_color_map = {
+        'Water': '#9ACD32',       # Green Yellow
+        'Waste': '#3CB371',       # Light Green
+        'Energy': '#32CD32',      # Lime Green
+        'Transportation': '#FF6347'  # Tomato
+    }
+
+    # Identify the category with the highest CO2e
+    max_index = pie_data['CO2e'].idxmax()
+    max_key = pie_data.iloc[max_index]['key']  # Get the key (category) with the highest CO2e
+
+    # Highlight the maximum value with bright red
+    highlight_color_map = {
+        key: (base_color_map[key] if key != max_key else '#FF0000')  # Highlight with Bright Red
+        for key in pie_data['key']
+    }
+
+    # Map colors and create pull-out effect
+    colors = [highlight_color_map[item] for item in pie_data['key']]
+    pull_values = [0.1 if i == max_index else 0 for i in range(len(pie_data))]
 
     # Create the donut chart
-    fig = px.pie(pie_data, names='key', values='value', title="Water and Waste Distribution", hole=0.4)
-    fig.update_traces(marker=dict(colors=colors), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
+    fig = px.pie(
+        pie_data,
+        names='key',
+        values='CO2e',
+        title="CO2e Emissions Distribution: Water, Waste, Energy, Transportation",
+        hole=0.4
+    )
+    fig.update_traces(
+        marker=dict(colors=colors),
+        pull=pull_values,  # Pull out the highest percentage slice
+        texttemplate='%{label}: %{percent:.2%}',
+        textposition='outside'
+    )
+
+    # Add an annotation to highlight the highest category explicitly
+    fig.add_annotation(
+        x=1,  # Place annotation outside the chart (adjust as necessary)
+        y=1,
+        text=f"Highest Emission: {max_key}",
+        showarrow=False,
+        font=dict(size=14, color='black'),
+        bgcolor='rgba(255,0,0,0.3)',  # Highlight the annotation with transparent red
+        bordercolor='red',
+        borderwidth=1
+    )
+
     return fig
+
+
+
 
 
 # Callback to update the heatmap
@@ -2179,7 +2764,7 @@ def update_pie_water_waste(value):
 )
 def update_heatmap(value):
     # Select relevant columns for the heatmap
-    heatmap_data = df[['Water', 'Waste', 'Energy', 'Transportation', 'GHG_Total']]
+    heatmap_data = df[['Water', 'Waste', 'Energy', 'Transportation', 'total_ghg']]
     
     # Calculate correlation for heatmap visualization
     correlation_matrix = heatmap_data.corr()
@@ -2410,6 +2995,16 @@ def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_inte
 
 
 # generate report
+# Sample emission data for business travel and procurement
+
+# Calculate the total emission from business travel and procurement transportation
+total_emission = (business_travel_data['Hotel Emission'] + 
+                  business_travel_data['Flight Emission'] + 
+                  business_procurement_data['Airline Emission'] + 
+                  business_procurement_data['Diesel Truck Emission'] + 
+                  business_procurement_data['Electric Truck Emission'])
+
+
 @app.callback(
     Output('download-report', 'data'),
     Input('report-button', 'n_clicks')
@@ -2453,6 +3048,29 @@ def generate_report(n_clicks):
             <p><strong>Data Boundaries</strong></p>
             <p>The dataset includes various entities, each contributing to the total emissions and resource metrics. This report reflects the aggregated and segmented data as processed by our platform, without further boundary restrictions or exclusions.</p>
             """
+            
+            emission_section = f"""
+            <h2>Emission Breakdown</h2>
+            <p>The following details summarize key emission and sustainability data for the selected building:</p>
+
+            <p><strong>Total GHG Emissions:</strong> {building_data['GHG_Total']} CO2e</p>
+            <p><strong>Predicted GHG Intensity:</strong> {building_data['GHG_Intensity']} kg CO2e/m²</p>
+            <p><strong>Predicted Green Marks Certification:</strong> {building_data['Award']}</p>
+
+            <p>The following table summarizes the emissions associated with different business activities:</p>
+            <table border="1" cellpadding="5" cellspacing="0" style="width: 100%; text-align: left;">
+                <tr>
+                    <th>Emission Source</th>
+                    <th>Emission (in CO2e)</th>
+                </tr>
+                <tr><td>Business Travel Hotel Emission</td><td>{business_travel_data['Hotel Emission']}</td></tr>
+                <tr><td>Business Travel Flight Emission</td><td>{business_travel_data['Flight Emission']}</td></tr>
+                <tr><td>Business Procurement Airline Emission</td><td>{business_procurement_data['Airline Emission']}</td></tr>
+                <tr><td>Business Procurement Diesel Truck Emission</td><td>{business_procurement_data['Diesel Truck Emission']}</td></tr>
+                <tr><td>Business Procurement Electric Truck Emission</td><td>{business_procurement_data['Electric Truck Emission']}</td></tr>
+                <tr><td><strong>Total Emission from Business Travel and Procurement</strong></td><td><strong>{total_emission}</strong></td></tr>
+            </table>
+            """
 
             performance_data_intro = """
             <h2>Performance Data</h2>
@@ -2475,106 +3093,24 @@ def generate_report(n_clicks):
             </ul>
             """
 
-            # Generate and aggregate plots
-            # Awards Distribution plot
-            benchmark_data = df.groupby('Award').agg(unique_building_count=('Building Name', 'nunique')).reset_index()
-            fig_awards = go.Figure(data=[go.Scatter(
-                x=[0, 1, 2, 3], y=[2, 2, 2, 2], mode='markers+text',
-                marker=dict(size=benchmark_data["unique_building_count"], opacity=0.6, color="#365E32"),
-                text=benchmark_data["Award"],
-                textposition="top center",
-                hovertext=benchmark_data["unique_building_count"]
-            )])
-            fig_awards.update_layout(title="Awards Distribution", showlegend=False,
-                                     xaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False),
-                                     yaxis=dict(showgrid=False, showline=False, zeroline=False, visible=False))
-            awards_plot_html = fig_awards.to_html(full_html=False, include_plotlyjs='cdn')
+            # Generate Plots
+            trend_plot = update_line_chart("EQUINIX SG3 DATA CENTRE")
+            trend_plot_html = trend_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            # Performance Data plot (Aggregated GHG Intensity over time)
-            year_trend_df = df.groupby('YearDate').agg({'GHG_Intensity': 'mean'}).reset_index()
-            fig_performance = px.line(
-                year_trend_df,
-                x='YearDate',
-                y='GHG_Intensity',
-                title="Average Greenhouse Gas Emissions Intensity Over Time",
-                labels={"GHG_Intensity": "Average GHG Intensity"}
-            )
-            fig_performance.update_traces(line=dict(color="#365E32"))
-            performance_plot_html = fig_performance.to_html(full_html=False, include_plotlyjs='cdn')
+            benchmark_plot = update_combined_chart("EQUINIX SG3 DATA CENTRE")
+            benchmark_plot_html = benchmark_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            # GHG Intensity Violin Plot (under Benchmark)
-            fig_violin = px.violin(df, x="GHG_Intensity", box=True, points='all', title="GHG Intensity Violin Plot",
-                                   labels={"GHG_Intensity": "Greenhouse Gas Emissions Intensity"})
-            fig_violin.update_traces(marker=dict(color="green"))
-            violin_plot_html = fig_violin.to_html(full_html=False, include_plotlyjs='cdn')
+            violin_plot = update_violin_chart("EQUINIX SG3 DATA CENTRE")
+            violin_plot_html = violin_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            # Water and Waste Distribution Plot (under Performance Data)
-            pie_data_ww = pd.melt(df[['Building Name', 'Water', 'Waste']], id_vars='Building Name', var_name='key', value_name='value')
-            pie_data_ww = pie_data_ww.groupby('key').agg({"value": 'sum'}).reset_index()
+            scope_emissions_plot = update_bar_scope(None)
+            scope_emissions_plot_html = scope_emissions_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            # Define a lighter color map for Water and Waste
-            color_map_ww = {
-                'Water': '#d5e8d4',  # Very Light Mint Green
-                'Waste': '#b7e1cd'   # Light Pastel Green
-            }
+            water_waste_plot = update_pie_water_waste(None)
+            water_waste_plot_html = water_waste_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            # Map colors to each category in 'key'
-            colors_ww = [color_map_ww.get(item, '#dddddd') for item in pie_data_ww['key']]
-
-            fig_water_waste = px.pie(pie_data_ww, names='key', values='value', title="Water and Waste Distribution", hole=0.4)
-            fig_water_waste.update_traces(marker=dict(colors=colors_ww), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
-            water_waste_plot_html = fig_water_waste.to_html(full_html=False, include_plotlyjs='cdn')
-
-            # Scope Emissions Distribution Plot (under Performance Data)
-            pie_data_scope = pd.melt(df[['Building Name', 'Scope1', 'Scope2', 'Scope3']], id_vars='Building Name', var_name='key', value_name='value')
-            pie_data_scope = pie_data_scope.groupby('key').agg({"value": 'sum'}).reset_index()
-
-            # Define a lighter color map for Scope emissions
-            color_map_scope = {
-                'Scope1': '#a8d08d',   # Light Green
-                'Scope2': '#c5e0b4',   # Very Light Green
-                'Scope3': '#e2efda'    # Pale Green
-            }
-
-            # Map colors to each category in 'key'
-            colors_scope = [color_map_scope.get(scope, '#dddddd') for scope in pie_data_scope['key']]
-
-            fig_scope_emissions = px.pie(pie_data_scope, names='key', values='value', title="Scope Emissions Distribution", hole=0.4)
-            fig_scope_emissions.update_traces(marker=dict(colors=colors_scope), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
-            scope_emissions_plot_html = fig_scope_emissions.to_html(full_html=False, include_plotlyjs='cdn')
-            pie_data_ww = pd.melt(df[['Building Name', 'Water', 'Waste']], id_vars='Building Name', var_name='key', value_name='value')
-            pie_data_ww = pie_data_ww.groupby('key').agg({"value": 'sum'}).reset_index()
-
-            # Define a lighter color map for Water and Waste
-            color_map_ww = {
-                'Water': '#d5e8d4',  # Very Light Mint Green
-                'Waste': '#b7e1cd'   # Light Pastel Green
-            }
-
-            # Map colors to each category in 'key'
-            colors_ww = [color_map_ww.get(item, '#dddddd') for item in pie_data_ww['key']]
-
-            fig_water_waste = px.pie(pie_data_ww, names='key', values='value', title="Water and Waste Distribution", hole=0.4)
-            fig_water_waste.update_traces(marker=dict(colors=colors_ww), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
-            water_waste_plot_html = fig_water_waste.to_html(full_html=False, include_plotlyjs='cdn')
-
-            #            Scope Emissions Distribution Plot (under Performance Data)
-            pie_data_scope = pd.melt(df[['Building Name', 'Scope1', 'Scope2', 'Scope3']], id_vars='Building Name', var_name='key', value_name='value')
-            pie_data_scope = pie_data_scope.groupby('key').agg({"value": 'sum'}).reset_index()
-
-            # Define a lighter color map for Scope emissions
-            color_map_scope = {
-                'Scope1': '#a8d08d',   # Light Green
-                'Scope2': '#c5e0b4',   # Very Light Green
-                'Scope3': '#e2efda'    # Pale Green
-            }
-
-            # Map colors to each category in 'key'
-            colors_scope = [color_map_scope.get(scope, '#dddddd') for scope in pie_data_scope['key']]
-
-            fig_scope_emissions = px.pie(pie_data_scope, names='key', values='value', title="Scope Emissions Distribution", hole=0.4)
-            fig_scope_emissions.update_traces(marker=dict(colors=colors_scope), texttemplate='%{label}: %{percent:.2%}', textposition='outside')
-            scope_emissions_plot_html = fig_scope_emissions.to_html(full_html=False, include_plotlyjs='cdn')
+            heatmap_plot = update_heatmap(None)
+            heatmap_plot_html = heatmap_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
             # Generate report based on the selected format
             report_html = f"""
@@ -2587,13 +3123,40 @@ def generate_report(n_clicks):
                         {executive_summary}
                         {introduction}
                         {scope_of_reporting}
+                        {emission_section}
                         {performance_data_intro}
-                        {performance_plot_html}
-                        {water_waste_plot_html}
-                        {scope_emissions_plot_html}
+                        <!-- Resource Usage Section -->
+                        <h2>Resource Usage: Water and Waste vs Scope Emissions Distribution</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-top: 20px;">
+                           <!-- Water and Waste Pie Chart -->
+                           <div style="flex-basis: 45%; padding: 10px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); text-align: center;">
+                               {water_waste_plot_html}
+                           </div>
+            
+                           <!-- Scope Emissions Bar Plot -->
+                           <div style="flex-basis: 45%; padding: 10px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); text-align: center;">
+                               {scope_emissions_plot_html}
+                           </div>
+                        </div>
+                        
                         {benchmark_intro}
-                        {awards_plot_html}
+                        <!-- Benchmark and Trend Plots Section -->
+                        <h2>Benchmarking and Emission Trends</h2>
+                        <div style="display: flex; justify-content: center; align-items: flex-start; gap: 40px; margin-top: 20px;">
+                            <!-- Benchmark Plot -->
+                            <div style="flex-basis: 45%; padding: 10px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); text-align: center;">
+                                {benchmark_plot_html}
+                            <p style="margin-top: 10px; font-size: 14px;">Benchmark Comparison: Building Intensity vs Award Levels</p>
+                            </div>
+            
+                            <!-- Trend Plot -->
+                            <div style="flex-basis: 45%; padding: 10px; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); text-align: center;">
+                                {trend_plot_html} <!-- This should contain your Trend Plot -->
+                            <p style="margin-top: 10px; font-size: 14px;">Greenhouse Gas Emissions Over Time</p>
+                            </div>
+                        </div>
                         {violin_plot_html}
+                        {heatmap_plot_html}
                         {future_outlook}
                     </body>
                 </html>

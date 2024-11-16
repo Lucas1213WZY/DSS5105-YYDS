@@ -23,7 +23,7 @@ import openai
 import numpy as np
 from plotly.subplots import make_subplots
 import pickle
-from validator_final import GreenMarkValidator
+from utils.validator_final import GreenMarkValidator
 
 #from utils.helper_functions import calculate_business_emissions
 from pathlib import Path
@@ -1286,10 +1286,10 @@ def calculate_total_transportation_emissions(commuting_data, business_travel_dat
     }
 
 def ghg_predictions(data):
-    with open('../dss/scaler_xgb.pkl', 'rb') as scaler_file:
+    with open('../Group A/prediction models/scaler_xgb.pkl', 'rb') as scaler_file:
         scaler = pickle.load(scaler_file)
 
-    with open('../dss/tuned_xgb_model.pkl', 'rb') as model_file:
+    with open('../Group A/prediction models/tuned_xgb_model.pkl', 'rb') as model_file:
         tuned_xgb_model = pickle.load(model_file)
 
     # Step 2: Apply log transformation to match training preprocessing
@@ -1606,13 +1606,64 @@ building_data = {
     'Transportation': 20294264.86,
     'GFA': 35218,
     'Energy': 156833001,
-    'Waste': 303.3591407,
-    'Water': 96114.59328,
-    'GHG_Total': 3924.945017,
-    'GHG_Intensity': 0.11144713,
-    'Award': 'platinum'
+    'Waste': 303.36,
+    'Water': 96114.60,
+    'GHG_Total': 3924.95,
+    'GHG_Intensity': 0.11,
+    'Award': 'platinum',
 }
 
+scope_data = {'Scope 1': 82.33,
+              'Scope 2': 1884.79,
+              'Scope 3': 1868.68
+}
+# Create a bar plot for scope data using Plotly Express
+fig_scope_bar = px.bar(
+    x=list(scope_data.keys()),
+    y=list(scope_data.values()),
+    title="Proportion of Emissions by Scope",
+    labels={'x': 'Scope', 'y': 'Emissions (tCO2e)'},
+    color=list(scope_data.keys()),
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+
+# Customize the layout
+fig_scope_bar.update_layout(
+    xaxis_title="Scope",
+    yaxis_title="Emissions (tCO2e)",
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    font=dict(size=14),
+    showlegend=False
+)
+
+# Add the graph beside the table
+dbc.Row([
+    dbc.Col(dbc.Table(
+        [
+            html.Thead(html.Tr([html.Th("Attribute"), html.Th("Value")])),
+            html.Tbody([
+                html.Tr([html.Td("Postcode"), html.Td(building_data['Postcode'])]),
+                html.Tr([html.Td("Year"), html.Td(building_data['Year'])]),
+                html.Tr([html.Td("Address"), html.Td(building_data['Address'])]),
+                html.Tr([html.Td("Employee Count"), html.Td(building_data['Employee'])]),
+                html.Tr([html.Td("Transportation Emissions"), html.Td(f"{building_data['Transportation']:.2f}")]),
+                html.Tr([html.Td("Gross Floor Area (GFA)"), html.Td(building_data['GFA'])]),
+                html.Tr([html.Td("Energy Consumption"), html.Td(building_data['Energy'])]),
+                html.Tr([html.Td("Waste"), html.Td(f"{building_data['Waste']:.2f}")]),
+                html.Tr([html.Td("Water Usage"), html.Td(f"{building_data['Water']:.2f}")]),
+                html.Tr([html.Td("GHG Total"), html.Td(f"{building_data['GHG_Total']:.2f}")]),
+                html.Tr([html.Td("GHG Intensity"), html.Td(f"{building_data['GHG_Intensity']:.5f}")]),
+                html.Tr([html.Td("Award"), html.Td(building_data['Award'].capitalize())]),
+            ])
+        ],
+        bordered=True,
+        hover=True,
+        responsive=True,
+        striped=True
+    ), width=6),
+    dbc.Col(dcc.Graph(figure=fig_scope_bar), width=6)
+], justify='center', className="mb-4")
 # Synthetic Doughnut Data
 commuting_emission_data = {
     'Subway Emission': 400,
@@ -1636,6 +1687,25 @@ space_distribution_data = {
     'Retail': 20,
     'Parking': 10
 }
+# Space Distribution Bar Chart
+fig_space_distribution_bar = px.bar(
+    x=list(space_distribution_data.keys()),
+    y=list(space_distribution_data.values()),
+    title="Building Space Distribution",
+    labels={'x': 'Space Type', 'y': 'Percentage (%)'},
+    color=list(space_distribution_data.keys()),
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+
+# Customize the layout
+fig_space_distribution_bar.update_layout(
+    xaxis_title="Space Type",
+    yaxis_title="Percentage (%)",
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)',
+    font=dict(size=14),
+    showlegend=False
+)
 
 # Doughnut Charts
 fig_commuting_donut = px.pie(
@@ -1802,6 +1872,8 @@ page_3_manual_layout = dbc.Container([
         dbc.Col(dcc.Graph(figure=fig_commuting_donut), width=4),
         dbc.Col(dcc.Graph(figure=fig_business_travel_donut), width=4),
         dbc.Col(dcc.Graph(figure=fig_business_procurement_donut), width=4),
+        dbc.Col(dcc.Graph(figure=fig_space_distribution_bar), width=4),
+        dbc.Col(dcc.Graph(figure=fig_scope_bar), width=4)
     ], className="mb-5")
 ], fluid=True)
 
@@ -1904,7 +1976,7 @@ page_2_layout = dbc.Container([
 
     # Missing Data Details Section
     dbc.Card([
-            dbc.CardHeader("Missing Data Details", style={
+            dbc.CardHeader("Missing Data Details (If you want to check and fill out the missing values)", style={
                 "backgroundColor": "#A8D5BA", "color": "#2F4F4F",
                 "fontWeight": "600", "fontSize": "24px", "textAlign": "left"}),
             dbc.CardBody([
@@ -1941,11 +2013,20 @@ page_2_layout = dbc.Container([
     # Navigation Buttons
     dbc.Row([
         dbc.Col([
-            html.A("Next: Model Running and Comparison", href='/page-3', style={'fontSize': '18px', 'color': 'blue'}),
+            dbc.Card(
+                dbc.CardBody([
+                    html.A("Next: Model Running and Comparison", href='/page-3', style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif', 'fontSize': '16px'}),
+                ]),
+                style={'boxShadow': '0 4px 8px rgba(2, 8, 5, 7)', 'borderRadius': '8px'}
+            ),
         ], width=3),
         dbc.Col([
-            dbc.Button("Next: Model Running and Comparison", id="next-model-button", color="success", href='/page-3',
-                       style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif'}),
+            dbc.Card(
+                dbc.CardBody([
+                    html.A("Reupload Data", href='/page-1', style={'width': '100%', 'padding': '10px', 'borderRadius': '8px', 'fontWeight': 'bold', 'fontFamily': 'Montserrat, sans-serif', 'fontSize': '16px'}),
+                ]),
+                style={'boxShadow': '0 4px 8px rgba(2, 8, 5, 7)', 'borderRadius': '8px'}
+            ),
         ], width=3),
     ], justify="center", className="mt-4 mb-5")
 ], fluid=True)
@@ -2155,7 +2236,7 @@ def populate_missing_data_details(pathname):
             lambda row: ', '.join(missing_details.columns[row]), axis=1
         )
         # Limit to first 5 rows
-        limited_missing_details = missing_details.head()
+        limited_missing_details = missing_details.loc[:5, :]
         
         # Convert to dictionary format for Dash table
         table_data = limited_missing_details.reset_index().to_dict('records')
@@ -2182,7 +2263,7 @@ def set_commuting_factors(region):
 
 
 # need to process the paths for the data
-df = pd.read_csv('../dss/merged_df1.csv', encoding="latin-1", encoding_errors='ignore') if not ('uploaded_df' in global_data) else global_data['uploaded_df']
+df = pd.read_csv('./datasets/merged_df1.csv', encoding="latin-1", encoding_errors='ignore') if not ('uploaded_df' in global_data) else global_data['uploaded_df']
 df = df.dropna()
 
 
@@ -2370,7 +2451,6 @@ def update_line_chart(selected_building):
                 "Year": "Year"
             }
         )
-
         # Customize line color and layout
         fig.update_traces(line=dict(color="#365E32"))
         fig.update_layout(
@@ -2603,7 +2683,7 @@ def update_violin_chart(selected_building):
         else:
             status_message = (
                 "You have a relatively high GHG emission level. "
-                "You might need to be aware of government regulations."
+                "You will need to paymore carbon tax"
             )
         
         # Add annotation to display the status message on the plot
@@ -3029,7 +3109,9 @@ def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_inte
 
 
 # generate report
+# Sample emission data for business travel and procurement
 
+# Calculate the total emission from business travel and procurement transportation
 total_emission = (business_travel_data['Hotel Emission'] + 
                   business_travel_data['Flight Emission'] + 
                   business_procurement_data['Airline Emission'] + 
@@ -3051,7 +3133,6 @@ def generate_report(n_clicks, selected_building):
             if not selected_building:
                 selected_building = "Default Building Name"
 
-            
             # Static title for the report
             report_title = "ESG Performance Analysis Report"
 
@@ -3194,8 +3275,8 @@ def generate_report(n_clicks, selected_building):
                             </div>
                         </div>
                         {violin_plot_html}
-                        {heatmap_plot_html}
                         {future_outlook}
+                        {heatmap_plot_html}
                     </body>
                 </html>
                 """

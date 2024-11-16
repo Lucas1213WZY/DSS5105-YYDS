@@ -274,8 +274,9 @@ app.layout = html.Div([
                     },
                 ),
                 dcc.Location(id="url", refresh=True),
+                dcc.Store(id='selected-building-store'),
                 html.Div(id="page-content"),
-                dcc.Store(id="user-data", storage_type="session"),
+                dcc.Store(id="user-data", storage_type="session")
             ],
             style={"padding": "20px", "transition": "margin-left 0.3s ease"},  # Smooth transition for margin
         ),
@@ -2322,6 +2323,13 @@ page_3_layout = dbc.Container([
     ], justify="center", className="mt-4 mb-5"),
 ], fluid=True)
 
+# Callback to update the store
+@app.callback(
+    Output('selected-building-store', 'data'),
+    Input('dropdown-selection', 'value')
+)
+def update_selected_building_store(selected_building):
+    return selected_building
 
 # Sidebar adjustment callback
 @app.callback(
@@ -2340,13 +2348,13 @@ def adjust_logo_position(n_clicks, current_style):
     Output('year_trend_line', 'figure'),
     Input('dropdown-selection', 'value')
 )
-def update_line_chart(value):
+def update_line_chart(selected_building):
     # Check if a building is selected
-    if not value:
+    if not selected_building:
         raise dash.exceptions.PreventUpdate
-    if value and value.strip() and value in df['Building Name'].values:
+    if selected_building and selected_building.strip() and selected_building in df['Building Name'].values:
         # Filter the DataFrame for the selected building
-        building_data = df[df['Building Name'] == value]
+        building_data = df[df['Building Name'] == selected_building]
         
         # Group data by YearDate and calculate the mean total GHG for the selected building
         year_trend_df = building_data.groupby('Year').agg({'total_ghg': 'mean'}).reset_index()
@@ -2356,7 +2364,7 @@ def update_line_chart(value):
             year_trend_df,
             x='Year',
             y='total_ghg',
-            title=f"Greenhouse Gas Emissions Over Time for {value}",
+            title=f"Greenhouse Gas Emissions Over Time for {selected_building}",
             labels={
                 "total_ghg": "Total Greenhouse Gas Emissions (tCO₂e/m²)",
                 "Year": "Year"
@@ -3021,43 +3029,28 @@ def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_inte
 
 
 # generate report
-# Sample emission data for business travel and procurement
 
-# Calculate the total emission from business travel and procurement transportation
 total_emission = (business_travel_data['Hotel Emission'] + 
                   business_travel_data['Flight Emission'] + 
                   business_procurement_data['Airline Emission'] + 
                   business_procurement_data['Diesel Truck Emission'] + 
                   business_procurement_data['Electric Truck Emission'])
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content'),
-    dcc.Store(id='selected-building-store')  # Add global state
-])
-@app.callback(
-    Output('selected-building-store', 'data'),
-    Input('dropdown-selection', 'value')
-)
-def update_store(selected_building):
-    return selected_building
 
+
+# Callback to generate the report
 @app.callback(
     Output('download-report', 'data'),
-    [Input('report-button', 'n_clicks')],
-    [State('selected-building-store', 'data')]
+    Input('report-button', 'n_clicks'),
+    State('selected-building-store', 'data') 
 )
 
 
-def generate_report(n_clicks,selected_building):
+def generate_report(n_clicks, selected_building):
     if n_clicks:
         try:
-            # Ensure a building is selected
-            # Filter the data for the selected building
-            if selected_building in df['Building Name'].values:
-                building_data = df[df['Building Name'] == selected_building]
-            else:
-                raise ValueError(f"Selected building '{selected_building}' not found in the data.")
-            
+            if not selected_building:
+                selected_building = "Default Building Name"
+
             
             # Static title for the report
             report_title = "ESG Performance Analysis Report"
@@ -3139,13 +3132,13 @@ def generate_report(n_clicks,selected_building):
             """
 
             # Generate Plots
-            trend_plot = update_line_chart(value)
+            trend_plot = update_line_chart(selected_building)
             trend_plot_html = trend_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            benchmark_plot = update_combined_chart(value)
+            benchmark_plot = update_combined_chart(selected_building)
             benchmark_plot_html = benchmark_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
-            violin_plot = update_violin_chart(value)
+            violin_plot = update_violin_chart(selected_building)
             violin_plot_html = violin_plot.to_html(full_html=False, include_plotlyjs='cdn')
 
             scope_emissions_plot = update_bar_scope(None)

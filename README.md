@@ -5,6 +5,9 @@
 * Benchmarking & Ratings with Green Mark Incentive Schemes, Customizable GHG Reduction Recommendations
 * AI-Powered GHG Emission Chatbot Assistant
 
+```plaintext
+    "Project Assessment: for the openai API Key please find attached the key in the email Group YYDS sent to you, thank you!"
+```
 
 **To install and use this Calculator:**
 *1.Clone the repository

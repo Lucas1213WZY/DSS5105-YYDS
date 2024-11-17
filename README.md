@@ -1,4 +1,15 @@
-# DSS5105-YYDS
+# DSS5105-YYDS [Your Yielding partner in sustainable Development Solutions]
+
+# We are a company that provides GHG Emission Calculations and Estimations for Buildings in Singapore. This is an easy-to-use, interactive and customizable calculator and dashboard with all-in-one functionality:
+* Automatic Data Validation and Cleaning, Data Analysis, Machine Learning Model and Indicator Combined Prediction, Data Visualizations
+* Benchmarking & Ratings with Green Mark Incentive Schemes, Customizable GHG Reduction Recommendations
+* AI-Powered GHG Emission Chatbot Assistant
+
+
+**To install and use this Calculator:**
+
+
+
 
 **Dashboard**
 

@@ -183,11 +183,6 @@ The file should include:
 For manual input options: Transportation breakdowns are also needed : (commuting: Bus, MRT, Taxi; 
 Business Travel: Flight & Hotel(Cost); Business Procurement: Air Freight, Electric Truck, Diesel Truck.)
 
-**Project Structure**
-
-plotlt.py: Main application file for the Dash app.
-
-merged_df.csv: CSV data source file.
 
 **Troubleshooting**
 

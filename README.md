@@ -154,7 +154,8 @@ This guide provides quick instructions for setting up virtual environments using
 Ensure Python is installed on your system. Required libraries are all stored in the ***requirements.txt***
 
 Data Setup:
-For Demo pls upload the CSV file : merged_df1.csv, from the "datasets" folder in Group B folder. The file should include:
+For Demo pls upload the CSV file : merged_df1.csv, from the "datasets" folder in Group B folder. For your own calculations, please follow the below data dictionary.
+The file should include:
 | Column Name          | Description                                                                                  | Data Type | Required |
 |-----------------------|----------------------------------------------------------------------------------------------|-----------|----------|
 | **Building Name**     | Name of the building                                                                        | String    | Yes      |

@@ -40,7 +40,7 @@ with open(business_path) as f:
 selected_commuting_factors = {}
 
 
-openai.api_key = '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'
+openai.api_key = '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'
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server
@@ -1687,17 +1687,18 @@ space_distribution_data = {
     'Retail': 20,
     'Parking': 10
 }
-# Space Distribution Bar Chart
+
+# Bar Chart for Space Distribution with darker and more distinctive green shades
 fig_space_distribution_bar = px.bar(
     x=list(space_distribution_data.keys()),
     y=list(space_distribution_data.values()),
     title="Building Space Distribution",
     labels={'x': 'Space Type', 'y': 'Percentage (%)'},
     color=list(space_distribution_data.keys()),
-    color_discrete_sequence=px.colors.qualitative.Pastel
+    color_discrete_sequence=['#006400', '#228B22', '#2E8B57', '#32CD32']  # Darker distinctive greens
 )
 
-# Customize the layout
+# Customize the layout for Space Distribution Bar Chart
 fig_space_distribution_bar.update_layout(
     xaxis_title="Space Type",
     yaxis_title="Percentage (%)",
@@ -1707,28 +1708,32 @@ fig_space_distribution_bar.update_layout(
     showlegend=False
 )
 
-# Doughnut Charts
+# Doughnut Charts with darker and more distinctive green shades
 fig_commuting_donut = px.pie(
     names=list(commuting_emission_data.keys()),
     values=list(commuting_emission_data.values()),
     title="Commuting Emission Breakdown",
-    hole=0.4
+    hole=0.4,
+    color_discrete_sequence=['#006400', '#228B22', '#2E8B57', '#32CD32']  # Darker distinctive greens
 )
 
 fig_business_travel_donut = px.pie(
     names=list(business_travel_data.keys()),
     values=list(business_travel_data.values()),
     title="Business Travel Emission Breakdown",
-    hole=0.4
+    hole=0.4,
+    color_discrete_sequence=['#9ACD32', '#3CB371', '#2E8B57', '#32CD32']
 )
+
 
 fig_business_procurement_donut = px.pie(
     names=list(business_procurement_data.keys()),
     values=list(business_procurement_data.values()),
     title="Business Procurement Emission Breakdown",
-    hole=0.4
+    hole=0.4,
+    color_discrete_sequence=['#9ACD32', '#3CB371', '#2E8B57', '#32CD32']
 )
-# Create the bar chart using Plotly
+
 benchmarks = {
     'Platinum': 0.1,
     'GoldPLUS': 0.12,
@@ -1740,18 +1745,17 @@ current = building_data['GHG_Intensity']
 # Create bar chart data
 x = ['Current'] + list(benchmarks.keys())
 y = [current] + list(benchmarks.values())
-colors = ['#28a745'] + ['#007bff'] * len(benchmarks)
-
-# Create the bar chart
+#colors = ['#28a745'] + ['#007bff'] * len(benchmarks)
+# Green Mark Benchmarks with darker and more distinctive green shades
 fig = go.Figure(data=[
     go.Bar(
         x=x,
         y=y,
-        marker_color=colors
+        marker_color=['#9ACD32', '#3CB371', '#2E8B57', '#32CD32', '#013220']  # Darker distinctive greens
     )
 ])
 
-# Customize chart
+# Customize layout
 fig.update_layout(
     title='Green Mark Benchmarks',
     yaxis_title='GHG Intensity (tCO2e/m²)',
@@ -1762,10 +1766,10 @@ fig.update_layout(
     xaxis=dict(showgrid=False),
     yaxis=dict(showgrid=True, gridcolor='lightgrey')
 )
-
 # Add performance analysis
 current_level = building_data['Award']
 next_level = 'GoldPLUS' if current_level == 'Gold' else 'Gold' if current_level == 'Certified' else None
+# Add performance analysis
 if next_level:
     next_threshold = benchmarks[next_level]
     improvement = ((current - next_threshold) / current) * 100
@@ -1775,9 +1779,8 @@ if next_level:
         xref="paper", yref="paper",
         x=0.5, y=-0.2,
         showarrow=False,
-        font=dict(size=12, color='#28a745')
+        font=dict(size=12, color='#006400')  # Dark green for annotation
     )
-
 # Add the graph beside the table
 dbc.Row([
     dbc.Col(dbc.Table(
@@ -2949,63 +2952,108 @@ def create_chat_bubble(content, is_user=False, is_typing=False):
         }
     )
 
-
 page_4_layout = dbc.Container([
-    # Title
+    dcc.Store(id='report-content-store', storage_type='memory'),
+    
+    # Title Section
     dbc.Row([
-        dbc.Col(html.H1("Generate Report and Chat Assistance",
-                        className="text-center",
-                        style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px"}))
+        dbc.Col(html.H1(
+            "Report and Chatbot",
+            className="text-center",
+            style={"fontWeight": "bold", "marginTop": "20px", "marginBottom": "40px", "color": "#4A4A4A"}
+        ))
     ]),
 
-    # Centered Report Generation Section
+    # Report Generation Section
     dbc.Row([
         dbc.Col([
-            html.H5("Generate HTML Report", style={"textAlign": "center"}),
-            dbc.Button("Download Report", id="report-button", color="secondary", style={
-                'width': '25%', 'padding': '10px', 'borderRadius': '5px', 'fontSize': '16px', 'fontWeight': 'bold',
-                'margin': 'auto', 'display': 'block'
-            }),
-            dcc.Download(id="download-report")
-        ], width=12, className="mb-5", style={'textAlign': 'center'}),
+            html.Div([
+                html.H5("Your report is ready for download...", style={"textAlign": "center", "marginBottom": "15px"}),
+                dbc.Button(
+                    [html.I(className="fas fa-file-download", style={"marginRight": "8px"}), "Download Report"],
+                    id="report-button",
+                    color="secondary",
+                    style={
+                        'width': '50%', 
+                        'padding': '12px', 
+                        'borderRadius': '5px', 
+                        'fontSize': '16px', 
+                        'fontWeight': 'bold', 
+                        'margin': 'auto', 
+                        'display': 'block',
+                        'color': 'white',
+                        'boxShadow': '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    }
+                ),
+                dcc.Download(id="download-report")
+            ], style={'textAlign': 'center'}),
+        ], width=12, className="mb-5"),
     ]),
 
     # Chatbot Assistance Section
     dbc.Row([
         dbc.Col([
-            html.H5("Chatbot Assistance", className="mb-3", style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}),
             html.Div([
-                html.Div([
-                    dcc.Input(id='chatbot-input', type='text', placeholder="Ask a question about the report...", style={
-                        'width': '85%',
-                        'padding': '12px',
-                        'borderRadius': '25px',
-                        'border': '2px solid #ced4da',  # Slightly thicker border
-                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.1)',  # Shadow for depth
-                        'marginBottom': '10px',
-                        'fontSize': '16px',
-                        'fontFamily': 'Montserrat, sans-serif'
-                    }),
-                    html.Button(html.I(className="fas fa-paper-plane"), id='send-button', n_clicks=0, style={
-                        'backgroundColor': '#1e88e5',
+                html.H5(
+                    "Your Chat Assistance", 
+                    className="mb-3", 
+                    style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}
+                ),
+                html.Br(),  # Line break
+                html.H5(
+                    "Disclaimer: this is just for reference, AI chatbot commit mistakes, please check important info.",
+                    className="mb-3", 
+                    style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}
+                ),
+                dbc.Button(
+                    [html.I(className="fas fa-lightbulb", style={"marginRight": "10px"}), "View Recommendations"],
+                    id="recommendations-button",
+                    n_clicks=0,
+                    style={
+                        'backgroundColor': '#28A745',  # Green for action
                         'color': 'white',
                         'border': 'none',
-                        'borderRadius': '50%',
-                        'padding': '10px',
-                        'marginLeft': '10px',
-                        'width': '40px',
-                        'height': '40px',
-                        'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
-                        'display': 'flex',
-                        'alignItems': 'center',
-                        'justifyContent': 'center'
-                    }),
-                    html.Button(
-                        html.I(className="fas fa-redo-alt"),  
-                        id="refresh-button",
-                        n_clicks=0,
+                        'borderRadius': '25px',  # Rounded button
+                        'padding': '12px 30px',
+                        'fontSize': '16px',
+                        'fontWeight': 'bold',
+                        'margin': '20px auto',
+                        'cursor': 'pointer',
+                        'boxShadow': '0 4px 10px rgba(0, 0, 0, 0.2)',  # Add shadow
+                        'display': 'inline-flex',
+                        'alignItems': 'center',  # Align text with icon
+                        'justifyContent': 'center',
+                        'gap': '10px',  # Space between icon and text
+                        'transition': 'all 0.3s ease'  # Smooth hover effect
+                    },
+                    className="recommendation-btn"
+                ),
+            ], style={'textAlign': 'center'}),
+            
+            # Chat Input Section
+            html.Div([
+                html.Div([
+                    dcc.Input(
+                        id='chatbot-input', 
+                        type='text', 
+                        placeholder="Ask a question about the report...", 
                         style={
-                            'backgroundColor': '#17a2b8',  
+                            'width': '85%',
+                            'padding': '12px',
+                            'borderRadius': '25px',
+                            'border': '2px solid #ced4da',
+                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.1)',
+                            'marginBottom': '10px',
+                            'fontSize': '16px',
+                            'fontFamily': 'Montserrat, sans-serif'
+                        }
+                    ),
+                    html.Button(
+                        html.I(className="fas fa-paper-plane"), 
+                        id='send-button', 
+                        n_clicks=0, 
+                        style={
+                            'backgroundColor': '#1E88E5',
                             'color': 'white',
                             'border': 'none',
                             'borderRadius': '50%',
@@ -3013,28 +3061,58 @@ page_4_layout = dbc.Container([
                             'marginLeft': '10px',
                             'width': '40px',
                             'height': '40px',
-                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',  
+                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',
                             'display': 'flex',
                             'alignItems': 'center',
-                            'justifyContent': 'center'
-                    }),
+                            'justifyContent': 'center',
+                            'cursor': 'pointer'
+                        }
+                    ),
+                    html.Button(
+                        html.I(className="fas fa-redo-alt"), 
+                        id="refresh-button",
+                        n_clicks=0,
+                        style={
+                            'backgroundColor': '#17A2B8',
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '50%',
+                            'padding': '10px',
+                            'marginLeft': '10px',
+                            'width': '40px',
+                            'height': '40px',
+                            'boxShadow': '0 1px 6px rgba(0, 0, 0, 0.2)',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'cursor': 'pointer'
+                        }
+                    ),
                 ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center'}),
-                html.Div(id='chatbot-response', className="mt-3", style={
-                    'color': '#4a4a4a',
-                    'border': '1.5px solid #e9ecef',
-                    'borderRadius': '10px',
-                    'padding': '20px',
-                    'backgroundColor': '#f8f9fa',
-                    'minHeight': '200px',
-                    'fontSize': '16px',
-                    'lineHeight': '1.6',
-                    'display': 'flex',
-                    'flexDirection': 'column',
-                    'gap': '10px',
-                    'width': '80%',
-                    'margin': 'auto',
-                    'boxShadow': '0 2px 10px rgba(0, 0, 0, 0.1)'  # Subtle shadow for container
-                }),
+
+                # Chat Response Section
+                html.Div(
+                    id='chatbot-response',
+                    className="mt-3",
+                    style={
+                        'color': '#4A4A4A',
+                        'border': '1.5px solid #E9ECEF',
+                        'borderRadius': '10px',
+                        'padding': '20px',
+                        'backgroundColor': '#F8F9FA',
+                        'minHeight': '200px',
+                        'fontSize': '16px',
+                        'lineHeight': '1.6',
+                        'display': 'flex',
+                        'flexDirection': 'column',
+                        'gap': '10px',
+                        'width': '80%',
+                        'margin': 'auto',
+                        'boxShadow': '0 2px 10px rgba(0, 0, 0, 0.1)'  # Add shadow
+                    }
+                ),
+
+                # Typing animation intervals
                 dcc.Interval(id="typing-interval-greeting", interval=3000, n_intervals=0, max_intervals=1),  # Greeting 3-second interval
                 dcc.Interval(id="typing-interval-response", interval=3000, n_intervals=0, max_intervals=1),  # Response 3-second interval
                 dcc.Interval(id="page-load-trigger", interval=1, n_intervals=0, max_intervals=1)  # Trigger on page load
@@ -3042,12 +3120,23 @@ page_4_layout = dbc.Container([
         ], width=8, className="mb-5"),
     ], className="justify-content-center"),
 
-    # Next Button to proceed
+    # Next Button
     dbc.Row([
         dbc.Col([
-            dbc.Button("Next: Feedback Survey", id="go-to-page-5", color="success", href='/page-5', className="mt-4", style={
-                'width': '100%', 'padding': '10px', 'borderRadius': '5px', 'fontWeight': 'bold', 'fontSize': '16px'
-            })
+            dbc.Button(
+                "Next: Feedback Survey", 
+                id="go-to-page-5", 
+                color="success", 
+                href='/page-5', 
+                className="mt-4",
+                style={
+                    'width': '100%', 
+                    'padding': '10px', 
+                    'borderRadius': '5px', 
+                    'fontWeight': 'bold', 
+                    'fontSize': '16px'
+                }
+            )
         ], width=3),
     ], justify="center", className="mt-5 mb-5"),
 ], fluid=True)
@@ -3060,40 +3149,102 @@ page_4_layout = dbc.Container([
     Output('typing-interval-response', 'n_intervals'),
     Input('page-load-trigger', 'n_intervals'),
     Input('send-button', 'n_clicks'),
+    Input('recommendations-button', 'n_clicks'),
     Input('typing-interval-greeting', 'n_intervals'),
     Input('typing-interval-response', 'n_intervals'),
     Input('refresh-button', 'n_clicks'),
     State('chatbot-input', 'value'),
     State('chatbot-response', 'children')
 )
-
-def update_chatbot_response(page_load_trigger, send_clicks, greeting_typing_intervals, response_typing_intervals, refresh_clicks, user_input, existing_chat):
+def update_chatbot_response(page_load_trigger, send_clicks, recommendations_clicks,
+                            greeting_typing_intervals, response_typing_intervals,
+                            refresh_clicks, user_input, existing_chat):
     ctx = callback_context
     if not ctx.triggered:
         raise dash.exceptions.PreventUpdate
 
+    # Identify the triggered component
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    # Display initial typing animation on page load
+    # Handle Page Load Trigger
     if trigger_id == 'page-load-trigger' and page_load_trigger == 1:
         typing_animation = create_chat_bubble("", is_typing=True)
-        return [typing_animation], 0, dash.no_update  # Start typing interval for greeting message
-    
+        return [typing_animation], 0, dash.no_update
 
-    # Show the greeting message after typing animation ends
+    # Handle Greeting Typing Interval
     if trigger_id == 'typing-interval-greeting' and greeting_typing_intervals == 1:
-        greeting_message = create_chat_bubble("Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!", is_user=False)
+        greeting_message = create_chat_bubble(
+            "Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!",
+            is_user=False
+        )
         return [greeting_message], dash.no_update, dash.no_update
-    
-    # Refresh
+
+    # Handle Refresh Button
     if trigger_id == 'refresh-button' and refresh_clicks > 0:
         greeting_message = create_chat_bubble(
             "Hello! I’m here to help. Feel free to ask me anything about your report, emission calculations, modelling, or any questions about sustainability. Let’s dive in and find the answers you need!",
             is_user=False
         )
         return [greeting_message], 0, 0
-    
-    # Show typing animation for user-submitted question
+
+     # Recommendations Button
+    if trigger_id == 'recommendations-button' and recommendations_clicks > 0:
+        # Step 1: Add typing animation for recommendations
+        typing_animation = create_chat_bubble("", is_typing=True)
+        updated_chat = (existing_chat or []) + [typing_animation]
+        return updated_chat, dash.no_update, 0  # Trigger typing interval for recommendations
+
+    # Step 2: Show recommendations after typing animation ends
+    if trigger_id == 'typing-interval-response' and response_typing_intervals == 1:
+        try:
+            # Recommendations as a Dash list
+            recommendations = html.Div([
+                html.H4("Recommendations Based on GHG Emissions Report"),
+                html.P("Here are tailored recommendations for your building in Singapore:"),
+                html.Ul([
+                    html.Li(html.B("Overview:")),
+                    html.Ul([
+                        html.Li(f"Total GHG Emissions: 3924.95 CO2e"),
+                        html.Li(f"Emission Intensity: 0.111 kg CO2e/m²"),
+                        html.Li(f"Green Mark Certification Level: Platinum"),
+                    ]),
+                    html.Li(html.B("Primary Emission Drivers:")),
+                    html.Ul([
+                        html.Li("Transportation accounts for 78.25% of total emissions, making it the largest contributor."),
+                    ]),
+                    html.Li(html.B("Notifications and Warnings:")),
+                    html.Ul([
+                        html.Li("Nearly 80% of the building’s emissions come from transportation activities, likely due to business travel (flights and hotel stays) and freight transportation."),
+                        html.Li("Be aware of Singapore's carbon tax, which is currently 25 SGD/ton and will increase to 45 SGD/ton in 2024. Reducing emissions will directly lower operational costs."),
+                        html.Li("Your building’s emission intensity aligns well with the Green Mark Platinum standard, but regular audits and upgrades are recommended to stay ahead of stricter standards."),
+                    ]),
+                    html.Li(html.B("Actionable Steps for GHG Reduction:")),
+                    html.Ul([
+                        html.Li("Reduce long-distance travel, adopt electric or low-emission vehicles, and optimize logistics to significantly cut emissions."),
+                        html.Li("Regularly monitor and track emissions to identify trends and areas for improvement."),
+                        html.Li("Transition to low-emission or electric vehicles and optimize logistics routes."),
+                    ]),
+                    html.Li(html.B("Future Goals:")),
+                    html.Ul([
+                        html.Li("Set long-term carbon neutrality targets, such as a 50% reduction by 2030."),
+                        html.Li("Leverage government incentives like the Building Retrofit Energy Efficiency Financing (BREEF)."),
+                        html.Li("Automate emissions tracking and integrate with sustainability reporting frameworks."),
+                    ]),
+                ]),
+            ])
+
+            recommendations_response = create_chat_bubble(recommendations, is_user=False)
+            return (existing_chat[:-1] or []) + [recommendations_response], dash.no_update, dash.no_update
+
+        except Exception as e:
+            print(f"Error generating recommendations: {e}")
+            error_response = create_chat_bubble(
+                "An error occurred while generating recommendations. Please try again.",
+                is_user=False
+            )
+            return (existing_chat or []) + [error_response], dash.no_update, dash.no_update
+
+    # Handle User-Submitted Questions
     if trigger_id == 'send-button' and send_clicks > 0 and user_input:
         user_bubble = create_chat_bubble(user_input, is_user=True)
         typing_animation = create_chat_bubble("", is_typing=True)

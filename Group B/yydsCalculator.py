@@ -2907,7 +2907,6 @@ def update_heatmap(value):
 
 
 # Define layout for Page 4 - Report Generation and Chatbot
-
 # Open AI
 def generate_response(prompt):
     try:
@@ -2953,7 +2952,22 @@ def create_chat_bubble(content, is_user=False, is_typing=False):
     )
 
 page_4_layout = dbc.Container([
-    dcc.Store(id='report-content-store', storage_type='memory'),
+        html.Div(
+        html.Img(
+            src='./assets/teamlogo.png',
+            style={
+                'width': '220px',
+                'height': 'auto',
+            }
+        ),
+        id="page-5-logo-wrapper",
+        style={
+            'position': 'absolute',
+            'top': '55px',
+            'right': '40px',
+            'transition': 'right 0.3s ease'
+        }
+    ),
     
     # Title Section
     dbc.Row([
@@ -2999,33 +3013,30 @@ page_4_layout = dbc.Container([
                     className="mb-3", 
                     style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}
                 ),
-                html.Br(),  # Line break
-                html.H5(
-                    "Disclaimer: this is just for reference, AI chatbot commit mistakes, please check important info.",
-                    className="mb-3", 
-                    style={"textAlign": "center", "color": "#666", "fontFamily": "Montserrat, sans-serif"}
-                ),
                 dbc.Button(
                     [html.I(className="fas fa-lightbulb", style={"marginRight": "10px"}), "View Recommendations"],
                     id="recommendations-button",
                     n_clicks=0,
-                    style={
-                        'backgroundColor': '#28A745',  # Green for action
-                        'color': 'white',
-                        'border': 'none',
-                        'borderRadius': '25px',  # Rounded button
-                        'padding': '12px 30px',
-                        'fontSize': '16px',
-                        'fontWeight': 'bold',
-                        'margin': '20px auto',
-                        'cursor': 'pointer',
-                        'boxShadow': '0 4px 10px rgba(0, 0, 0, 0.2)',  # Add shadow
-                        'display': 'inline-flex',
-                        'alignItems': 'center',  # Align text with icon
-                        'justifyContent': 'center',
-                        'gap': '10px',  # Space between icon and text
-                        'transition': 'all 0.3s ease'  # Smooth hover effect
-                    },
+                style={
+                    'backgroundColor': '#56c596',  # Soft Green to complement the header
+                    'color': 'white',  # White text for contrast
+                    'border': 'none',  # Clean borderless style
+                    'borderRadius': '25px',  # Rounded corners for a modern look
+                    'padding': '12px 30px',  # Comfortable padding
+                    'fontSize': '16px',
+                    'fontWeight': 'bold',
+                    'margin': '20px auto',  # Center the button
+                    'cursor': 'pointer',  # Pointer for interactivity
+                    'boxShadow': '0 4px 8px rgba(0, 0, 0, 0.2)',  # Soft shadow for depth
+                    'display': 'inline-flex',
+                    'alignItems': 'center',
+                    'justifyContent': 'center',
+                    'gap': '10px',  # Gap between text and icon
+                    'transition': 'all 0.3s ease',  # Smooth hover effect
+                    'hover': {
+                        'backgroundColor': '#45a879',  # Slightly darker green on hover
+                    }
+                },
                     className="recommendation-btn"
                 ),
             ], style={'textAlign': 'center'}),
@@ -3210,7 +3221,7 @@ def update_chatbot_response(page_load_trigger, send_clicks, recommendations_clic
                     ]),
                     html.Li(html.B("Primary Emission Drivers:")),
                     html.Ul([
-                        html.Li("Transportation accounts for 78.25% of total emissions, making it the largest contributor."),
+                        html.Li("Transportation accounts for 78.25% of total emissions."),
                     ]),
                     html.Li(html.B("Notifications and Warnings:")),
                     html.Ul([
@@ -3256,6 +3267,8 @@ def update_chatbot_response(page_load_trigger, send_clicks, recommendations_clic
         return existing_chat[:-1] + [bot_response], dash.no_update, dash.no_update
 
     raise dash.exceptions.PreventUpdate
+
+
 
 
 

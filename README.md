@@ -9,30 +9,34 @@
 **To install and use this Calculator:**
 
 
-Directory / Path Structure
+# Directory / Path Structure
+
+The following is the directory structure for the project:
+
+```plaintext
 DSS5105-YYDS/
 ├── Group A/
 │   ├── Geospatial_Analysis/
-│   ├── business travel & procurement factor/    # Likely related to travel and procurement analysis
-│   ├── commuting factors/                       # Contains files or scripts for commuting-related analysis
-│   ├── datasets/                                # Directory for datasets
-│   ├── prediction models/                       # Models and scalers for predictions
-│   ├── scripts/                                 # General Python scripts or utilities
-│   ├── validation_initial_analysis/             # Initial validation analysis files
-│   ├── validation_root/                         # Root validation files
-│   ├── Business Travel & Procurement.xlsx       # A spreadsheet likely related to travel and procurement
-│   ├── Commuting Factor                         # Related document for commuting analysis
-└── README.md               
+│   ├── business travel & procurement factor/
+│   ├── commuting factors/
+│   ├── datasets/
+│   ├── prediction models/
+│   ├── scripts/
+│   ├── validation_initial_analysis/
+│   ├── validation_root/
+│   ├── Business Travel & Procurement.xlsx
+│   ├── Commuting Factor
+│   └── README.md
 ├── Group B/
-│   ├── assets
-│   ├── datasets
-│   ├── Dash
+│   ├── assets/
+│   ├── datasets/
+│   ├── Dash/
 │   ├── yydsCalculator.py
-│   ├── src_historical_versions
+│   ├── src_historical_versions/
 │   ├── structured_feedback_handler.py
 │   ├── CompleteDataset.csv
-└── README.md
-
+│   └── README.md
+```
 
 
 # Tutorial: Create Conda and Python Virtual Environments

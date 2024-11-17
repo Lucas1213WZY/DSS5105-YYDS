@@ -5,27 +5,27 @@
 * Benchmarking & Ratings with Green Mark Incentive Schemes, Customizable GHG Reduction Recommendations
 * AI-Powered GHG Emission Chatbot Assistant
 
-```plaintext
+```
     "Project Assessment: for the openai API Key please find attached the key in the email Group YYDS sent to you, thank you!"
 ```
 
 **To install and use this Calculator:**
 **1.Clone the repository**:
-    ```bash
+    ```
     git clone https://github.com/Lucas1213WZY/DSS5105-YYDS.git
     ```
 **2.After that use pip install or conda install to install all required libraries**:
 
-    ```bash
+    ```
     pip/conda install requirements.txt
     ```
 **3.Change directory from the root to Group B to run the yydsCalculator**:
-    ```bash
+    ```
     cd Group\ B
     python yydsCalculator.py
     ```
 **4.Once it's running, please go to your browser and use the link below to access the application on your ease**:
-    ```plaintext
+    ```
     http://127.0.0.1:8050/
     ```
     

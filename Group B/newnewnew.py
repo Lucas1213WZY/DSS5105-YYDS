@@ -2459,7 +2459,7 @@ def update_line_chart(selected_building):
         fig.update_layout(
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(showgrid=False),
+            xaxis=dict(showgrid=False, tickmode='linear', dtick=1),
             yaxis=dict(showgrid=False),
             font=dict(size=14)
         )
@@ -2716,7 +2716,7 @@ def update_violin_chart(selected_building):
     fig.update_layout(
         title="GHG Emissions for All Buildings",
         yaxis_title='',
-        xaxis_title='Total GHG Emissions (Log Transformed)',
+        xaxis_title='Total GHG Emissions',
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(size=14),

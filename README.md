@@ -1,5 +1,5 @@
 # DSS5105-YYDS [Your Yielding partner in sustainable Development Solutions]
-![Logo](https://github.com/Lucas1213WZY/DSS5105-YYDS/blob/main/Group%20B/assets/teamlogo.png)
+<img src="https://github.com/Lucas1213WZY/DSS5105-YYDS/blob/main/Group%20B/assets/teamlogo.png" alt="Logo" width="150" align="left">
 
 **We are a company that provides GHG Emission Calculations and Estimations for Buildings in Singapore. This is an easy-to-use, interactive and customizable calculator and dashboard with all-in-one functionality:**
 * Automatic Data Validation and Cleaning, Data Analysis, Machine Learning Model and Indicator Combined Prediction, Data Visualizations

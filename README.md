@@ -13,28 +13,26 @@
 
 1.**Clone the repository**:
 
-    ```plaintext
     git clone https://github.com/Lucas1213WZY/DSS5105-YYDS.git
-    ```
+
     
 2.**After that use pip install or conda install to install all required libraries**:
 
-    ```plaintext
+
     pip/conda install requirements.txt
-    ```
+
     
 3.**Change directory from the root to Group B to run the yydsCalculator**:
 
-    ```plaintext
+
     cd Group\ B
     python/run yydsCalculator.py
-    ```
+
     
 4.**Once it's running, please go to your browser and use the link below to access the application on your ease**:
 
-    ```plaintext
+
     http://127.0.0.1:8050/
-    ```
     
 
 

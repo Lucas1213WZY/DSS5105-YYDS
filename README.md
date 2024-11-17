@@ -37,7 +37,7 @@
 
     http://127.0.0.1:8050/
     
-** Tutorial Video**:
+Tutorial Video
 
 **Please visit this link for more detailed tutorials**: 
 https://drive.google.com/file/d/1_aHJkNOm_8wIf8eiH5TUHi5JyQGWG6sc/view?usp=sharing

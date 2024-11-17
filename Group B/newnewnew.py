@@ -40,7 +40,7 @@ with open(business_path) as f:
 selected_commuting_factors = {}
 
 
-openai.api_key = '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'
+openai.api_key = '' # from assets pdf enscripted key openaiAPIkey.pdf
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, "https://use.fontawesome.com/releases/v5.8.1/css/all.css"], suppress_callback_exceptions=True)
 server = app.server

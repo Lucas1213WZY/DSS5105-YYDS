@@ -9,7 +9,7 @@
 * AI-Powered GHG Emission Chatbot Assistant
 
 ```
-    "Project Assessment: for the openai API Key please find attached the key in the email Group YYDS sent to you, thank you!"
+    "Project Assessment: for the openai API Key please find attached the key in the Group B/assets/openaiAPIkey.pdf, passwd: 5105yyds, thank you!"
 ```
 
 **To install and use this Calculator:**

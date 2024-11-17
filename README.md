@@ -37,7 +37,10 @@
 
     http://127.0.0.1:8050/
     
+Tutorial Video
 
+**Please visit this link for more detailed tutorials**: 
+https://drive.google.com/file/d/1_aHJkNOm_8wIf8eiH5TUHi5JyQGWG6sc/view?usp=sharing
 
 # Directory / Path Structure
 
@@ -151,17 +154,35 @@ This guide provides quick instructions for setting up virtual environments using
 Ensure Python is installed on your system. Required libraries are all stored in the ***requirements.txt***
 
 Data Setup:
-Place the CSV file, merged_df.csv, in the same directory as plotlt.py. The file should include:
-Year column: Numeric values for years
+For Demo pls upload the CSV file : merged_df1.csv, from the "datasets" folder in Group B folder. For your own calculations, please follow the below data dictionary.
+The file should include:
+| Column Name          | Description                                                                                  | Data Type | Required |
+|-----------------------|----------------------------------------------------------------------------------------------|-----------|----------|
+| **Building Name**     | Name of the building                                                                        | String    | Yes      |
+| **Postcode**          | Postal code of the building location                                                        | Integer   | Yes      |
+| **Year**              | Year of data collection                                                                     | Integer   | Yes      |
+| **Latitude**          | Latitude coordinate of the building                                                         | Integer   | Yes      |
+| **Longitude**         | Longitude coordinate of the building                                                        | Integer   | Yes      |
+| **Address**           | Full address of the building                                                                | String    | Yes      |
+| **Type**              | Type of building (e.g., only applicable to office buildings)                                | String    | Yes      |
+| **Function**          | Functionality of the building (e.g., office)                                                | String    | Yes      |
+| **Size**              | Size of the building (e.g., area in square meters)                                          | Float     | Yes      |
+| **Employee**          | Number of employees working in the building                                                 | Integer   | Yes      |
+| **Transportation**    | Transportation-related data (e.g., parking spaces, public transit proximity)                | String    | Yes      |
+| **GFA**               | Gross Floor Area of the building  (in m²)                                                   | Float     | Yes      |
+| **Energy**            | Energy consumption data (e.g., kWh/year)                                                    | Float     | Yes      |
+| **Waste**             | Waste production data (e.g., tons/year)                                                     | Float     | Yes      |
+| **Water**             | Water consumption data (e.g., m³/year)                                                      | Float     | Yes      |
+| **Scope1**            | Direct GHG emissions (Scope 1, t CO2e)                                                      | Float     | No       |
+| **Scope2**            | Indirect GHG emissions from electricity (Scope 2, t CO2e)                                   | Float     | No       |
+| **Scope3**            | Other indirect GHG emissions (Scope 3, t CO2e)                                              | Float     | No       |
+| **GHG_Total**         | Total GHG emissions (t CO2e) [to be predicted/calculated]                                   | Float     | No       |
+| **GHG_Intensity**     | GHG emissions per unit area or employee (e.g., t CO2e/m²)[to be predicted/calculated]       | Float     | No       |
+| **Award**             | Awards or certifications (i.e., Green Mark Incentive Scheme) [to be predicted]              | String    | No       |
 
-Building Name column: Categorical data for building names
+For manual input options: Transportation breakdowns are also needed : (commuting: Bus, MRT, Taxi; 
+Business Travel: Flight & Hotel(Cost); Business Procurement: Air Freight, Electric Truck, Diesel Truck.)
 
-
-**Project Structure**
-
-plotlt.py: Main application file for the Dash app.
-
-merged_df.csv: CSV data source file.
 
 **Troubleshooting**
 
